@@ -39,6 +39,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   LibraryItem? _libraryItem;
   BookDetails? _details;
   bool _loadError = false;
+  Future<LibraryItem?>? _addFuture;
 
   @override
   void initState() {
@@ -57,9 +58,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     }
   }
 
-  Future<LibraryItem?> _ensureAdded() async {
+  Future<LibraryItem?> _ensureAdded() {
     final current = _libraryItem;
-    if (current != null) return current;
+    if (current != null) return Future.value(current);
+    return _addFuture ??= _doAdd();
+  }
+
+  Future<LibraryItem?> _doAdd() async {
     final uid = context.read<AuthProvider>().user!.uid;
     final item = await context.read<LibraryService>().addToLibrary(
       uid: uid,
@@ -74,7 +79,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   Future<void> _updatePages(int pagesRead) async {
     final item = await _ensureAdded();
-    if (item == null) return;
+    if (!mounted || item == null) return;
     final uid = context.read<AuthProvider>().user!.uid;
     await context.read<LibraryService>().updateBookProgress(
       uid: uid,
