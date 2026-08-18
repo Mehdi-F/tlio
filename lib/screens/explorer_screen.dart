@@ -23,7 +23,9 @@ class ExplorerScreen extends StatefulWidget {
   State<ExplorerScreen> createState() => _ExplorerScreenState();
 }
 
-class _ExplorerScreenState extends State<ExplorerScreen> {
+class _ExplorerScreenState extends State<ExplorerScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
   _ExplorerMode _mode = _ExplorerMode.books;
   final _controller = TextEditingController();
   List<BookSearchResult> _bookResults = [];
@@ -32,8 +34,18 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
   bool _error = false;
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: _ExplorerMode.values.length,
+      vsync: this,
+    );
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -104,30 +116,16 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
         actions: [
           IconButton(icon: const Icon(Icons.search), onPressed: _search),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          onTap: (i) => setState(() => _mode = _ExplorerMode.values[i]),
+          tabs: [
+            Tab(text: context.tr('explorer.toggleBooks')),
+            Tab(text: context.tr('explorer.toggleManga')),
+          ],
+        ),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: SegmentedButton<_ExplorerMode>(
-              segments: [
-                ButtonSegment(
-                  value: _ExplorerMode.books,
-                  label: Text(context.tr('explorer.toggleBooks')),
-                ),
-                ButtonSegment(
-                  value: _ExplorerMode.manga,
-                  label: Text(context.tr('explorer.toggleManga')),
-                ),
-              ],
-              selected: {_mode},
-              showSelectedIcon: false,
-              onSelectionChanged: (s) => setState(() => _mode = s.first),
-            ),
-          ),
-          Expanded(child: _buildResults(context)),
-        ],
-      ),
+      body: _buildResults(context),
     );
   }
 

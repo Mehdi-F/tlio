@@ -22,13 +22,27 @@ class BooksScreen extends StatefulWidget {
   State<BooksScreen> createState() => _BooksScreenState();
 }
 
-class _BooksScreenState extends State<BooksScreen> {
+class _BooksScreenState extends State<BooksScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
   _Filter _filter = _Filter.all;
   final Map<String, BookDetails> _resolved = {};
   final Set<String> _settled = {};
   bool _showContent = false;
   List<LibraryItem> _lastRawItems = const [];
   List<LibraryItem> _lastItems = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: _Filter.values.length, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -82,30 +96,14 @@ class _BooksScreenState extends State<BooksScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(context.tr('books.title')),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: SegmentedButton<_Filter>(
-              segments: [
-                ButtonSegment(
-                  value: _Filter.all,
-                  label: Text(context.tr('books.filterAll')),
-                ),
-                ButtonSegment(
-                  value: _Filter.books,
-                  label: Text(context.tr('books.filterBooks')),
-                ),
-                ButtonSegment(
-                  value: _Filter.comics,
-                  label: Text(context.tr('books.filterComics')),
-                ),
-              ],
-              selected: {_filter},
-              showSelectedIcon: false,
-              onSelectionChanged: (s) => setState(() => _filter = s.first),
-            ),
-          ),
+        bottom: TabBar(
+          controller: _tabController,
+          onTap: (i) => setState(() => _filter = _Filter.values[i]),
+          tabs: [
+            Tab(text: context.tr('books.filterAll')),
+            Tab(text: context.tr('books.filterBooks')),
+            Tab(text: context.tr('books.filterComics')),
+          ],
         ),
       ),
       body: _buildBody(),
