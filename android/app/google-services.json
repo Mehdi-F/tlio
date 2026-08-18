@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "717889078467",
+    "project_id": "tlio-app",
+    "storage_bucket": "tlio-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:717889078467:android:ddeca170110279c6750e76",
+        "android_client_info": {
+          "package_name": "com.example.tlio"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsqk-WqebsktsB3RPBNe0p1hhkXVTe1T0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
