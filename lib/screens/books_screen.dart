@@ -27,19 +27,19 @@ class _BooksScreenState extends State<BooksScreen> {
   final Map<String, BookDetails> _resolved = {};
   final Set<String> _settled = {};
   bool _showContent = false;
+  List<LibraryItem> _lastRawItems = const [];
   List<LibraryItem> _lastItems = const [];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final items = context
-        .watch<LibraryProvider>()
-        .items
-        .where((i) => i.type == 'book' || i.type == 'comic')
-        .toList();
-    if (!identical(items, _lastItems)) {
-      _lastItems = items;
-      _resolveAll(items);
+    final rawItems = context.watch<LibraryProvider>().items;
+    if (!identical(rawItems, _lastRawItems)) {
+      _lastRawItems = rawItems;
+      _lastItems = rawItems
+          .where((i) => i.type == 'book' || i.type == 'comic')
+          .toList();
+      _resolveAll(_lastItems);
     }
   }
 
