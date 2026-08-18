@@ -102,6 +102,7 @@ class _BooksScreenState extends State<BooksScreen> {
                 ),
               ],
               selected: {_filter},
+              showSelectedIcon: false,
               onSelectionChanged: (s) => setState(() => _filter = s.first),
             ),
           ),

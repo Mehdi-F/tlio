@@ -121,6 +121,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                 ),
               ],
               selected: {_mode},
+              showSelectedIcon: false,
               onSelectionChanged: (s) => setState(() => _mode = s.first),
             ),
           ),
