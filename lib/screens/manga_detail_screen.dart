@@ -113,7 +113,8 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(details.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
-      body: ListView(
+      body: SafeArea(
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Center(
@@ -152,6 +153,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
             child: Text(item == null ? context.tr('detail.addToLibrary') : context.tr('common.done')),
           ),
         ],
+        ),
       ),
     );
   }

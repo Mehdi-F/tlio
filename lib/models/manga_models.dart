@@ -1,3 +1,5 @@
+import '../utils/html_utils.dart';
+
 class MangaSearchResult {
   final int id;
   final String title;
@@ -44,7 +46,7 @@ class MangaDetails {
       id: json['id'] as int,
       title: (title['english'] as String?) ?? (title['romaji'] as String?) ?? 'Sans titre',
       coverUrl: cover?['large'] as String?,
-      description: (json['description'] as String?) ?? '',
+      description: stripHtml((json['description'] as String?) ?? ''),
       volumes: json['volumes'] as int?,
       chapters: json['chapters'] as int?,
       genres: (json['genres'] as List<dynamic>? ?? []).cast<String>(),

@@ -145,7 +145,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           overflow: TextOverflow.ellipsis,
         ),
       ),
-      body: ListView(
+      body: SafeArea(
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Center(
@@ -226,6 +227,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

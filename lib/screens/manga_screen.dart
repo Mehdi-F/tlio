@@ -21,11 +21,15 @@ class _HistoryEntry {
   _HistoryEntry({required this.item, required this.volume, required this.readAt});
 }
 
-/// A manga is "finished" once volumesRead has caught up to a known
-/// volumesTotal. With no total known, it stays in the to-read list forever
-/// once started, same rationale as books' _isFinished.
-bool _isFinished(LibraryItem item) =>
-    item.volumesTotal != null && (item.volumesRead ?? 0) >= item.volumesTotal!;
+/// A manga is "finished" once volumesRead has caught up to its total volume
+/// count. The stored item.volumesTotal is only ever set from whatever
+/// AniList returned at add time — if that fetch hadn't resolved yet, it
+/// stays null forever. Falling back to the live-resolved MangaDetails'
+/// volumes catches that case, same rationale as books_screen's _isFinished.
+bool _isFinished(LibraryItem item, int? liveTotal) {
+  final total = item.volumesTotal ?? liveTotal;
+  return total != null && (item.volumesRead ?? 0) >= total;
+}
 
 class MangaScreen extends StatefulWidget {
   const MangaScreen({super.key});
@@ -154,7 +158,9 @@ class _MangaScreenState extends State<MangaScreen> {
         ),
       ];
     }
-    final toRead = _lastItems.where((i) => !_isFinished(i)).toList()
+    final toRead = _lastItems
+        .where((i) => !_isFinished(i, _resolved[i.docId]?.volumes))
+        .toList()
       ..sort((a, b) => (b.lastActivityAt ?? b.addedAt).compareTo(a.lastActivityAt ?? a.addedAt));
     if (toRead.isEmpty) {
       return [
@@ -164,23 +170,38 @@ class _MangaScreenState extends State<MangaScreen> {
         ),
       ];
     }
-    return toRead.map((item) {
-      final details = _resolved[item.docId];
-      return ListTile(
-        leading: SizedBox(
-          width: 44,
-          height: 62,
-          child: details?.coverUrl != null
-              ? CachedNetworkImage(imageUrl: details!.coverUrl!, fit: BoxFit.cover)
-              : Container(color: AppColors.surfaceVariant),
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Text(
+          context.tr('manga.toRead'),
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
         ),
-        title: Text(details?.title ?? item.sourceId, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: item.volumesTotal != null
-            ? Text('${item.volumesRead ?? 0}/${item.volumesTotal} ${context.tr('manga.volumesProgress')}')
-            : null,
-        onTap: () => Navigator.of(context).push(appRoute(builder: (_) => MangaDetailScreen(libraryItem: item))),
-      );
-    }).toList();
+      ),
+      ...toRead.map((item) {
+        final details = _resolved[item.docId];
+        final total = item.volumesTotal ?? details?.volumes;
+        return ListTile(
+          leading: SizedBox(
+            width: 44,
+            height: 62,
+            child: details?.coverUrl != null
+                ? CachedNetworkImage(imageUrl: details!.coverUrl!, fit: BoxFit.cover)
+                : Container(color: AppColors.surfaceVariant),
+          ),
+          title: Text(details?.title ?? item.sourceId, maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: total != null
+              ? Text('${item.volumesRead ?? 0}/$total ${context.tr('manga.volumesProgress')}')
+              : null,
+          onTap: () => Navigator.of(context).push(appRoute(builder: (_) => MangaDetailScreen(libraryItem: item))),
+        );
+      }),
+    ];
   }
 
   Widget _historyToggleRow(BuildContext context) {

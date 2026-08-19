@@ -46,6 +46,7 @@ class AppStrings {
       'manga.hideHistory': 'Masquer l\'historique',
       'manga.history': 'HISTORIQUE DE LECTURE',
       'manga.allCaughtUp': 'Tout est à jour.',
+      'manga.toRead': 'À lire',
 
       // Explorer
       'explorer.search': 'Rechercher...',
@@ -127,6 +128,7 @@ class AppStrings {
       'manga.hideHistory': 'Hide history',
       'manga.history': 'READING HISTORY',
       'manga.allCaughtUp': 'All caught up.',
+      'manga.toRead': 'To read',
 
       'explorer.search': 'Search...',
       'explorer.searchBooks': 'Search for a book or comic...',
