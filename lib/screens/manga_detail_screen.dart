@@ -4,10 +4,12 @@ import '../l10n/localization_context.dart';
 import '../models/library_item.dart';
 import '../models/manga_models.dart';
 import '../providers/auth_provider.dart';
+import '../providers/library_provider.dart';
 import '../services/library_service.dart';
 import '../services/manga_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/detail_banner.dart';
+import '../widgets/expandable_text.dart';
 import '../widgets/skeletons.dart';
 
 class MangaDetailScreen extends StatefulWidget {
@@ -37,8 +39,20 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _libraryItem = widget.libraryItem;
+    // Explorer's search/discover results always open via .preview (no
+    // LibraryItem in hand), even for titles already in the library — without
+    // this lookup the button always read "Ajouter" regardless of actual
+    // state, since it only ever checked widget.libraryItem.
+    _libraryItem = widget.libraryItem ?? _findExisting();
     _load();
+  }
+
+  LibraryItem? _findExisting() {
+    final items = context.read<LibraryProvider>().items;
+    for (final i in items) {
+      if (i.type == 'manga' && i.sourceId == '${widget.anilistId}') return i;
+    }
+    return null;
   }
 
   Future<void> _load() async {
@@ -68,6 +82,37 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
         );
     if (mounted) setState(() => _libraryItem = item);
     return item;
+  }
+
+  Future<void> _confirmRemove() async {
+    final item = _libraryItem;
+    if (item == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(context.tr('detail.removeConfirm')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(context.tr('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(context.tr('detail.removeFromLibrary')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final uid = context.read<AuthProvider>().user!.uid;
+    await context.read<LibraryService>().removeFromLibrary(uid: uid, docId: item.docId);
+    if (mounted) {
+      setState(() {
+        _libraryItem = null;
+        _addFuture = null;
+      });
+    }
   }
 
   Future<void> _toggleVolume(int volume, bool read) async {
@@ -130,7 +175,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(details.description, style: const TextStyle(fontSize: 14)),
+                  ExpandableText(text: details.description),
                   const SizedBox(height: 24),
                   if (total != null) ...[
                     Text('${item?.volumesRead ?? 0}/$total ${context.tr('manga.volumesProgress')}',
@@ -196,10 +241,16 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                       );
                     }),
                   const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: item == null ? _ensureAdded : null,
-                    child: Text(item == null ? context.tr('detail.addToLibrary') : context.tr('common.done')),
-                  ),
+                  if (item == null)
+                    FilledButton(
+                      onPressed: _ensureAdded,
+                      child: Text(context.tr('detail.addToLibrary')),
+                    )
+                  else
+                    OutlinedButton(
+                      onPressed: _confirmRemove,
+                      child: Text(context.tr('detail.removeFromLibrary')),
+                    ),
                 ],
               ),
             ),

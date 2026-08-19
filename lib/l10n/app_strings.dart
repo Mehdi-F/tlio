@@ -18,6 +18,8 @@ class AppStrings {
       'common.yes': 'Oui',
       'common.no': 'Non',
       'common.loadMore': 'Charger plus',
+      'common.showMore': 'Voir plus',
+      'common.showLess': 'Voir moins',
 
       // Login
       'login.tagline': 'Ta bibliothèque, ouverte',
@@ -67,6 +69,7 @@ class AppStrings {
       // Detail
       'detail.addToLibrary': 'Ajouter à ma bibliothèque',
       'detail.removeFromLibrary': 'Retirer de la bibliothèque',
+      'detail.removeConfirm': 'Retirer ce titre de ta bibliothèque ?',
       'detail.status': 'Statut',
       'detail.statusReading': 'En cours',
       'detail.statusCompleted': 'Terminé',
@@ -103,6 +106,8 @@ class AppStrings {
       'common.yes': 'Yes',
       'common.no': 'No',
       'common.loadMore': 'Load more',
+      'common.showMore': 'Show more',
+      'common.showLess': 'Show less',
 
       'login.tagline': 'Your library, open',
       'login.signInWithGoogle': 'Sign in with Google',
@@ -147,6 +152,7 @@ class AppStrings {
 
       'detail.addToLibrary': 'Add to my library',
       'detail.removeFromLibrary': 'Remove from library',
+      'detail.removeConfirm': 'Remove this title from your library?',
       'detail.status': 'Status',
       'detail.statusReading': 'Reading',
       'detail.statusCompleted': 'Completed',
