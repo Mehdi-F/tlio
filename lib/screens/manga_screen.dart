@@ -21,6 +21,12 @@ class _HistoryEntry {
   _HistoryEntry({required this.item, required this.volume, required this.readAt});
 }
 
+/// A manga is "finished" once volumesRead has caught up to a known
+/// volumesTotal. With no total known, it stays in the to-read list forever
+/// once started, same rationale as books' _isFinished.
+bool _isFinished(LibraryItem item) =>
+    item.volumesTotal != null && (item.volumesRead ?? 0) >= item.volumesTotal!;
+
 class MangaScreen extends StatefulWidget {
   const MangaScreen({super.key});
 
@@ -148,7 +154,17 @@ class _MangaScreenState extends State<MangaScreen> {
         ),
       ];
     }
-    return _lastItems.map((item) {
+    final toRead = _lastItems.where((i) => !_isFinished(i)).toList()
+      ..sort((a, b) => (b.lastActivityAt ?? b.addedAt).compareTo(a.lastActivityAt ?? a.addedAt));
+    if (toRead.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.all(32),
+          child: Center(child: Text(context.tr('manga.allCaughtUp'), style: const TextStyle(color: AppColors.textSecondary))),
+        ),
+      ];
+    }
+    return toRead.map((item) {
       final details = _resolved[item.docId];
       return ListTile(
         leading: SizedBox(

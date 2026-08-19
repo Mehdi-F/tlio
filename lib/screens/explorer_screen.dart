@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +17,14 @@ import 'manga_detail_screen.dart';
 
 enum _ExplorerMode { books, manga }
 
+const _bookCategories = [
+  ('explorer.categoryComics', 'Comics & Graphic Novels'),
+  ('explorer.categoryFiction', 'Fiction'),
+  ('explorer.categoryFantasy', 'Fantasy'),
+  ('explorer.categoryThriller', 'Thrillers'),
+  ('explorer.categoryYoung', 'Juvenile Fiction'),
+];
+
 class ExplorerScreen extends StatefulWidget {
   const ExplorerScreen({super.key});
 
@@ -31,7 +40,10 @@ class _ExplorerScreenState extends State<ExplorerScreen>
   List<BookSearchResult> _bookResults = [];
   List<MangaSearchResult> _mangaResults = [];
   bool _loading = false;
+  bool _showDiscover = true;
   bool _error = false;
+  Timer? _debounce;
+  int _searchToken = 0;
 
   @override
   void initState() {
@@ -44,30 +56,48 @@ class _ExplorerScreenState extends State<ExplorerScreen>
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
-  Future<void> _search() async {
-    final query = _controller.text.trim();
-    if (query.isEmpty) return;
+  void _onQueryChanged(String value) {
+    setState(() => _showDiscover = value.trim().isEmpty);
+    _debounce?.cancel();
+    if (value.trim().isEmpty) {
+      setState(() {
+        _bookResults = [];
+        _mangaResults = [];
+      });
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 400), () => _search(value));
+  }
+
+  Future<void> _search([String? query]) async {
+    final q = (query ?? _controller.text).trim();
+    if (q.isEmpty) return;
+    final token = ++_searchToken;
     setState(() {
       _loading = true;
       _error = false;
     });
     try {
       if (_mode == _ExplorerMode.books) {
-        final results = await context.read<BookService>().search(query);
-        if (mounted) setState(() => _bookResults = results);
+        final results = await context.read<BookService>().search(q);
+        if (!mounted || token != _searchToken) return;
+        setState(() => _bookResults = results);
       } else {
-        final results = await context.read<MangaService>().search(query);
-        if (mounted) setState(() => _mangaResults = results);
+        final results = await context.read<MangaService>().search(q);
+        if (!mounted || token != _searchToken) return;
+        setState(() => _mangaResults = results);
       }
     } catch (_) {
-      if (mounted) setState(() => _error = true);
+      if (!mounted || token != _searchToken) return;
+      setState(() => _error = true);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && token == _searchToken) setState(() => _loading = false);
     }
   }
 
@@ -105,7 +135,11 @@ class _ExplorerScreenState extends State<ExplorerScreen>
         title: TextField(
           controller: _controller,
           textInputAction: TextInputAction.search,
-          onSubmitted: (_) => _search(),
+          onChanged: _onQueryChanged,
+          onSubmitted: (v) {
+            _debounce?.cancel();
+            _search(v);
+          },
           decoration: InputDecoration(
             hintText: _mode == _ExplorerMode.books
                 ? context.tr('explorer.searchBooks')
@@ -113,9 +147,6 @@ class _ExplorerScreenState extends State<ExplorerScreen>
             border: InputBorder.none,
           ),
         ),
-        actions: [
-          IconButton(icon: const Icon(Icons.search), onPressed: _search),
-        ],
         bottom: TabBar(
           controller: _tabController,
           onTap: (i) => setState(() => _mode = _ExplorerMode.values[i]),
@@ -125,7 +156,41 @@ class _ExplorerScreenState extends State<ExplorerScreen>
           ],
         ),
       ),
-      body: _buildResults(context),
+      body: _showDiscover ? _buildDiscover(context) : _buildResults(context),
+    );
+  }
+
+  Widget _buildDiscover(BuildContext context) {
+    if (_mode == _ExplorerMode.books) {
+      return ListView(
+        padding: const EdgeInsets.only(top: 8, bottom: 24),
+        children: [
+          for (final (labelKey, subject) in _bookCategories)
+            _BookCategoryRow(
+              title: context.tr(labelKey),
+              subject: subject,
+              alreadyInLibrary: _alreadyInLibrary,
+              onAdd: _addBook,
+            ),
+        ],
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      children: [
+        _MangaCategoryRow(
+          title: context.tr('explorer.mangaTrending'),
+          sort: 'TRENDING_DESC',
+          alreadyInLibrary: _alreadyInLibrary,
+          onAdd: _addManga,
+        ),
+        _MangaCategoryRow(
+          title: context.tr('explorer.mangaPopular'),
+          sort: 'POPULARITY_DESC',
+          alreadyInLibrary: _alreadyInLibrary,
+          onAdd: _addManga,
+        ),
+      ],
     );
   }
 
@@ -216,6 +281,193 @@ class _ExplorerScreenState extends State<ExplorerScreen>
           ).push(appRoute(builder: (_) => MangaDetailScreen.preview(id: r.id))),
         );
       },
+    );
+  }
+}
+
+class _CategoryTile extends StatelessWidget {
+  final String? imageUrl;
+  final VoidCallback onTap;
+  final bool inLibrary;
+  final VoidCallback onAdd;
+
+  const _CategoryTile({
+    required this.imageUrl,
+    required this.onTap,
+    required this.inLibrary,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 100,
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                width: 100,
+                height: 140,
+                child: imageUrl != null
+                    ? CachedNetworkImage(imageUrl: imageUrl!, fit: BoxFit.cover)
+                    : Container(color: AppColors.surfaceVariant),
+              ),
+            ),
+            Positioned(
+              right: 2,
+              bottom: 2,
+              child: GestureDetector(
+                onTap: inLibrary ? null : onAdd,
+                child: Container(
+                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                  padding: const EdgeInsets.all(2),
+                  child: Icon(
+                    inLibrary ? Icons.check_circle : Icons.add_circle_outline,
+                    color: inLibrary ? Colors.greenAccent : Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BookCategoryRow extends StatefulWidget {
+  final String title;
+  final String subject;
+  final bool Function(String type, String sourceId) alreadyInLibrary;
+  final void Function(BookSearchResult) onAdd;
+
+  const _BookCategoryRow({
+    required this.title,
+    required this.subject,
+    required this.alreadyInLibrary,
+    required this.onAdd,
+  });
+
+  @override
+  State<_BookCategoryRow> createState() => _BookCategoryRowState();
+}
+
+class _BookCategoryRowState extends State<_BookCategoryRow> {
+  late final Future<List<BookSearchResult>> _future =
+      context.read<BookService>().discover(widget.subject);
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<BookSearchResult>>(
+      future: _future,
+      builder: (context, snapshot) {
+        final items = snapshot.data;
+        if (items == null || items.isEmpty) return const SizedBox.shrink();
+        return _CategoryRowLayout(
+          title: widget.title,
+          count: items.length,
+          tileBuilder: (i) {
+            final r = items[i];
+            return _CategoryTile(
+              imageUrl: r.thumbnailUrl,
+              inLibrary: widget.alreadyInLibrary('book', r.id),
+              onAdd: () => widget.onAdd(r),
+              onTap: () => Navigator.of(context).push(
+                appRoute(builder: (_) => BookDetailScreen.preview(id: r.id)),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _MangaCategoryRow extends StatefulWidget {
+  final String title;
+  final String sort;
+  final bool Function(String type, String sourceId) alreadyInLibrary;
+  final void Function(MangaSearchResult) onAdd;
+
+  const _MangaCategoryRow({
+    required this.title,
+    required this.sort,
+    required this.alreadyInLibrary,
+    required this.onAdd,
+  });
+
+  @override
+  State<_MangaCategoryRow> createState() => _MangaCategoryRowState();
+}
+
+class _MangaCategoryRowState extends State<_MangaCategoryRow> {
+  late final Future<List<MangaSearchResult>> _future =
+      context.read<MangaService>().discover(sort: widget.sort);
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<MangaSearchResult>>(
+      future: _future,
+      builder: (context, snapshot) {
+        final items = snapshot.data;
+        if (items == null || items.isEmpty) return const SizedBox.shrink();
+        return _CategoryRowLayout(
+          title: widget.title,
+          count: items.length,
+          tileBuilder: (i) {
+            final r = items[i];
+            return _CategoryTile(
+              imageUrl: r.coverUrl,
+              inLibrary: widget.alreadyInLibrary('manga', '${r.id}'),
+              onAdd: () => widget.onAdd(r),
+              onTap: () => Navigator.of(context).push(
+                appRoute(builder: (_) => MangaDetailScreen.preview(id: r.id)),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _CategoryRowLayout extends StatelessWidget {
+  final String title;
+  final int count;
+  final Widget Function(int index) tileBuilder;
+
+  const _CategoryRowLayout({
+    required this.title,
+    required this.count,
+    required this.tileBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        ),
+        SizedBox(
+          height: 150,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: count,
+            itemBuilder: (context, index) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: tileBuilder(index),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

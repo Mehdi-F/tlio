@@ -93,4 +93,16 @@ class BookService {
     final body = await _cachedBody('details:$id', uri, 'Get book details');
     return BookDetails.fromJson(jsonDecode(body) as Map<String, dynamic>);
   }
+
+  /// Google Books has no trending/bestseller endpoint, so "discover" is a
+  /// subject-search browse row instead — cached like details, unlike search.
+  Future<List<BookSearchResult>> discover(String subject) async {
+    final uri = _withKey(Uri.parse('${GoogleBooksConfig.baseUrl}/volumes').replace(
+      queryParameters: {'q': 'subject:$subject', 'orderBy': 'relevance', 'maxResults': '15'},
+    ));
+    final body = await _cachedBody('discover:$subject', uri, 'Discover books');
+    final decoded = jsonDecode(body) as Map<String, dynamic>;
+    final items = decoded['items'] as List<dynamic>? ?? [];
+    return items.map((i) => BookSearchResult.fromJson(i as Map<String, dynamic>)).toList();
+  }
 }

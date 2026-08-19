@@ -128,4 +128,24 @@ class MangaService {
     final decoded = jsonDecode(body) as Map<String, dynamic>;
     return MangaDetails.fromJson(decoded['data']?['Media'] as Map<String, dynamic>);
   }
+
+  static const _discoverQuery = r'''
+    query ($sort: [MediaSort]) {
+      Page(page: 1, perPage: 15) {
+        media(type: MANGA, sort: $sort) {
+          id
+          title { romaji english }
+          coverImage { large }
+          volumes
+        }
+      }
+    }
+  ''';
+
+  Future<List<MangaSearchResult>> discover({required String sort}) async {
+    final body = await _cachedQuery('discover:$sort', _discoverQuery, {'sort': [sort]}, 'Discover manga');
+    final decoded = jsonDecode(body) as Map<String, dynamic>;
+    final media = decoded['data']?['Page']?['media'] as List<dynamic>? ?? [];
+    return media.map((m) => MangaSearchResult.fromJson(m as Map<String, dynamic>)).toList();
+  }
 }
