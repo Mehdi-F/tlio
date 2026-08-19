@@ -1,3 +1,5 @@
+import '../utils/html_utils.dart';
+
 class BookSearchResult {
   final String id;
   final String title;
@@ -44,7 +46,7 @@ class BookDetails {
       id: json['id'] as String,
       title: info['title'] as String? ?? 'Sans titre',
       authors: (info['authors'] as List<dynamic>? ?? []).cast<String>(),
-      description: info['description'] as String? ?? '',
+      description: stripHtml(info['description'] as String? ?? ''),
       pageCount: (info['pageCount'] as num?)?.toInt(),
       thumbnailUrl: (images?['thumbnail'] as String?)?.replaceFirst('http://', 'https://'),
       categories: (info['categories'] as List<dynamic>? ?? []).cast<String>(),

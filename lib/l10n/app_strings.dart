@@ -36,6 +36,7 @@ class AppStrings {
       'books.hideHistory': 'Masquer l\'historique',
       'books.history': 'TERMINÉS',
       'books.allCaughtUp': 'Rien en cours pour le moment.',
+      'books.markFinished': 'Marquer comme terminé',
 
       // Manga
       'manga.title': 'Manga',
@@ -117,6 +118,7 @@ class AppStrings {
       'books.hideHistory': 'Hide history',
       'books.history': 'FINISHED',
       'books.allCaughtUp': 'Nothing in progress right now.',
+      'books.markFinished': 'Mark as finished',
 
       'manga.title': 'Manga',
       'manga.empty': 'No manga in your library yet.',

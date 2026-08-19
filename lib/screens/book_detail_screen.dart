@@ -40,12 +40,28 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   BookDetails? _details;
   bool _loadError = false;
   Future<LibraryItem?>? _addFuture;
+  final _pageController = TextEditingController();
+  bool _pageControllerSeeded = false;
 
   @override
   void initState() {
     super.initState();
     _libraryItem = widget.libraryItem;
     _load();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  /// Only sets the field's initial text once — after that the field is the
+  /// user's to edit, and _updatePages keeps it in sync on every change.
+  void _seedPageController(int pagesRead) {
+    if (_pageControllerSeeded) return;
+    _pageControllerSeeded = true;
+    _pageController.text = '$pagesRead';
   }
 
   Future<void> _load() async {
@@ -78,16 +94,20 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   Future<void> _updatePages(int pagesRead) async {
+    final pageCount = _details?.pageCount;
+    final clamped = pageCount != null ? pagesRead.clamp(0, pageCount) : pagesRead.clamp(0, 1 << 30);
     final item = await _ensureAdded();
     if (!mounted || item == null) return;
     final uid = context.read<AuthProvider>().user!.uid;
     await context.read<LibraryService>().updateBookProgress(
       uid: uid,
       docId: item.docId,
-      pagesRead: pagesRead,
+      pagesRead: clamped,
     );
-    if (mounted)
-      setState(() => _libraryItem = item.copyWith(pagesRead: pagesRead));
+    if (mounted) {
+      setState(() => _libraryItem = item.copyWith(pagesRead: clamped));
+      _pageController.text = '$clamped';
+    }
   }
 
   @override
@@ -151,17 +171,50 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           Text(details.description, style: const TextStyle(fontSize: 14)),
           const SizedBox(height: 24),
           if (pageCount != null) ...[
-            Text(
-              '${item?.pagesRead ?? 0}/$pageCount ${context.tr('books.pagesProgress')}',
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            Slider(
-              value: (item?.pagesRead ?? 0).clamp(0, pageCount).toDouble(),
-              min: 0,
-              max: pageCount.toDouble(),
-              divisions: pageCount > 0 ? pageCount : 1,
-              onChanged: (v) => _updatePages(v.round()),
-            ),
+            Builder(builder: (context) {
+              _seedPageController(item?.pagesRead ?? 0);
+              final pagesRead = item?.pagesRead ?? 0;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$pagesRead/$pageCount ${context.tr('books.pagesProgress')}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _PageStepButton(label: '-10', onTap: () => _updatePages(pagesRead - 10)),
+                      const SizedBox(width: 6),
+                      _PageStepButton(label: '-1', onTap: () => _updatePages(pagesRead - 1)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _pageController,
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                          onSubmitted: (v) => _updatePages(int.tryParse(v) ?? pagesRead),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      _PageStepButton(label: '+1', onTap: () => _updatePages(pagesRead + 1)),
+                      const SizedBox(width: 6),
+                      _PageStepButton(label: '+10', onTap: () => _updatePages(pagesRead + 10)),
+                    ],
+                  ),
+                  if (pagesRead < pageCount) ...[
+                    const SizedBox(height: 8),
+                    Center(
+                      child: TextButton(
+                        onPressed: () => _updatePages(pageCount),
+                        child: Text(context.tr('books.markFinished')),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            }),
           ],
           const SizedBox(height: 16),
           FilledButton(
@@ -174,6 +227,22 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PageStepButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _PageStepButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+      child: Text(label),
     );
   }
 }
