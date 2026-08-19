@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/localization_context.dart';
@@ -8,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../services/library_service.dart';
 import '../services/manga_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/detail_banner.dart';
 import '../widgets/skeletons.dart';
 
 class MangaDetailScreen extends StatefulWidget {
@@ -87,12 +87,19 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     if (mounted) setState(() => _libraryItem = item.copyWith(volumeReadAt: newReadAt, volumesRead: newCount));
   }
 
+  AppBar _minimalAppBar() => AppBar(
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    foregroundColor: Colors.white,
+  );
+
   @override
   Widget build(BuildContext context) {
     final details = _details;
     if (details == null) {
       if (_loadError) {
         return Scaffold(
+          appBar: _minimalAppBar(),
           body: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -105,54 +112,53 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
           ),
         );
       }
-      return const Scaffold(body: DetailScreenSkeleton());
+      return Scaffold(appBar: _minimalAppBar(), body: const DetailScreenSkeleton());
     }
 
     final item = _libraryItem;
     final total = details.volumes;
 
     return Scaffold(
-      appBar: AppBar(title: Text(details.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
       body: SafeArea(
+        top: false,
         child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Center(
-            child: SizedBox(
-              width: 140,
-              height: 200,
-              child: details.coverUrl != null
-                  ? CachedNetworkImage(imageUrl: details.coverUrl!, fit: BoxFit.cover)
-                  : Container(color: AppColors.surfaceVariant),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(details.description, style: const TextStyle(fontSize: 14)),
-          const SizedBox(height: 24),
-          if (total != null) ...[
-            Text('${item?.volumesRead ?? 0}/$total ${context.tr('manga.volumesProgress')}',
-                style: const TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: List.generate(total, (i) {
-                final volume = i + 1;
-                final read = item?.volumeReadAt.containsKey('$volume') ?? false;
-                return FilterChip(
-                  label: Text('$volume'),
-                  selected: read,
-                  onSelected: (v) => _toggleVolume(volume, v),
-                );
-              }),
+          padding: EdgeInsets.zero,
+          children: [
+            DetailBanner(coverUrl: details.coverUrl, title: details.title),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(details.description, style: const TextStyle(fontSize: 14)),
+                  const SizedBox(height: 24),
+                  if (total != null) ...[
+                    Text('${item?.volumesRead ?? 0}/$total ${context.tr('manga.volumesProgress')}',
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List.generate(total, (i) {
+                        final volume = i + 1;
+                        final read = item?.volumeReadAt.containsKey('$volume') ?? false;
+                        return FilterChip(
+                          label: Text('$volume'),
+                          selected: read,
+                          onSelected: (v) => _toggleVolume(volume, v),
+                        );
+                      }),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: item == null ? _ensureAdded : null,
+                    child: Text(item == null ? context.tr('detail.addToLibrary') : context.tr('common.done')),
+                  ),
+                ],
+              ),
             ),
           ],
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: item == null ? _ensureAdded : null,
-            child: Text(item == null ? context.tr('detail.addToLibrary') : context.tr('common.done')),
-          ),
-        ],
         ),
       ),
     );

@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/localization_context.dart';
@@ -8,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../services/book_service.dart';
 import '../services/library_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/detail_banner.dart';
 import '../widgets/skeletons.dart';
 
 class BookDetailScreen extends StatefulWidget {
@@ -110,12 +110,19 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     }
   }
 
+  AppBar _minimalAppBar() => AppBar(
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    foregroundColor: Colors.white,
+  );
+
   @override
   Widget build(BuildContext context) {
     final details = _details;
     if (details == null) {
       if (_loadError) {
         return Scaffold(
+          appBar: _minimalAppBar(),
           body: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -131,102 +138,92 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           ),
         );
       }
-      return const Scaffold(body: DetailScreenSkeleton());
+      return Scaffold(appBar: _minimalAppBar(), body: const DetailScreenSkeleton());
     }
 
     final item = _libraryItem;
     final pageCount = details.pageCount;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          details.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
       body: SafeArea(
+        top: false,
         child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Center(
-            child: SizedBox(
-              width: 140,
-              height: 200,
-              child: details.thumbnailUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: details.thumbnailUrl!,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(color: AppColors.surfaceVariant),
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (details.authors.isNotEmpty)
-            Text(
-              '${context.tr('detail.by')} ${details.authors.join(', ')}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-          const SizedBox(height: 16),
-          Text(details.description, style: const TextStyle(fontSize: 14)),
-          const SizedBox(height: 24),
-          if (pageCount != null) ...[
-            Builder(builder: (context) {
-              _seedPageController(item?.pagesRead ?? 0);
-              final pagesRead = item?.pagesRead ?? 0;
-              return Column(
+          padding: EdgeInsets.zero,
+          children: [
+            DetailBanner(coverUrl: details.thumbnailUrl, title: details.title),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '$pagesRead/$pageCount ${context.tr('books.pagesProgress')}',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _PageStepButton(label: '-10', onTap: () => _updatePages(pagesRead - 10)),
-                      const SizedBox(width: 6),
-                      _PageStepButton(label: '-1', onTap: () => _updatePages(pagesRead - 1)),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: _pageController,
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                          onSubmitted: (v) => _updatePages(int.tryParse(v) ?? pagesRead),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      _PageStepButton(label: '+1', onTap: () => _updatePages(pagesRead + 1)),
-                      const SizedBox(width: 6),
-                      _PageStepButton(label: '+10', onTap: () => _updatePages(pagesRead + 10)),
-                    ],
-                  ),
-                  if (pagesRead < pageCount) ...[
-                    const SizedBox(height: 8),
-                    Center(
-                      child: TextButton(
-                        onPressed: () => _updatePages(pageCount),
-                        child: Text(context.tr('books.markFinished')),
-                      ),
+                  if (details.authors.isNotEmpty) ...[
+                    Text(
+                      '${context.tr('detail.by')} ${details.authors.join(', ')}',
+                      style: const TextStyle(color: AppColors.textSecondary),
                     ),
+                    const SizedBox(height: 16),
                   ],
+                  Text(details.description, style: const TextStyle(fontSize: 14)),
+                  const SizedBox(height: 24),
+                  if (pageCount != null) ...[
+                    Builder(builder: (context) {
+                      _seedPageController(item?.pagesRead ?? 0);
+                      final pagesRead = item?.pagesRead ?? 0;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$pagesRead/$pageCount ${context.tr('books.pagesProgress')}',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              _PageStepButton(label: '-10', onTap: () => _updatePages(pagesRead - 10)),
+                              const SizedBox(width: 6),
+                              _PageStepButton(label: '-1', onTap: () => _updatePages(pagesRead - 1)),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextField(
+                                  controller: _pageController,
+                                  textAlign: TextAlign.center,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                                  onSubmitted: (v) => _updatePages(int.tryParse(v) ?? pagesRead),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              _PageStepButton(label: '+1', onTap: () => _updatePages(pagesRead + 1)),
+                              const SizedBox(width: 6),
+                              _PageStepButton(label: '+10', onTap: () => _updatePages(pagesRead + 10)),
+                            ],
+                          ),
+                          if (pagesRead < pageCount) ...[
+                            const SizedBox(height: 8),
+                            Center(
+                              child: TextButton(
+                                onPressed: () => _updatePages(pageCount),
+                                child: Text(context.tr('books.markFinished')),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    }),
+                  ],
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: item == null ? _ensureAdded : null,
+                    child: Text(
+                      item == null
+                          ? context.tr('detail.addToLibrary')
+                          : context.tr('common.done'),
+                    ),
+                  ),
                 ],
-              );
-            }),
-          ],
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: item == null ? _ensureAdded : null,
-            child: Text(
-              item == null
-                  ? context.tr('detail.addToLibrary')
-                  : context.tr('common.done'),
+              ),
             ),
-          ),
-        ],
+          ],
         ),
       ),
     );
