@@ -131,6 +131,12 @@ class _ExplorerScreenState extends State<ExplorerScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Nothing else in this screen subscribes to LibraryProvider — without
+    // this, _alreadyInLibrary's context.read never triggers a rebuild after
+    // adding, so the + icon never flips to a checkmark even though the
+    // Firestore write succeeded. Looks completely dead no matter how many
+    // times it's tapped.
+    context.watch<LibraryProvider>();
     return Scaffold(
       appBar: AppBar(
         title: TextField(

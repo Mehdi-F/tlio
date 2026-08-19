@@ -155,7 +155,20 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                     // stepper lets progress still be tracked (and still
                     // feeds the same per-volume history as the chips).
                     Builder(builder: (context) {
-                      final volumesRead = item?.volumesRead ?? 0;
+                      // Derived from the actual volumeReadAt keys, not the
+                      // cached item.volumesRead field — that field can drift
+                      // from the map (e.g. a stale write), and picking the
+                      // next volume off a drifted count re-writes a key that
+                      // already exists, which is a silent no-op: the map's
+                      // length doesn't change, so the button looks broken.
+                      final volumeKeys = item?.volumeReadAt.keys
+                              .map((k) => int.tryParse(k) ?? 0)
+                              .toList() ??
+                          [];
+                      final volumesRead = volumeKeys.length;
+                      final maxVolume = volumeKeys.isEmpty
+                          ? 0
+                          : volumeKeys.reduce((a, b) => a > b ? a : b);
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -168,13 +181,13 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                             children: [
                               OutlinedButton(
                                 onPressed: volumesRead > 0
-                                    ? () => _toggleVolume(volumesRead, false)
+                                    ? () => _toggleVolume(maxVolume, false)
                                     : null,
                                 child: const Text('-1'),
                               ),
                               const SizedBox(width: 10),
                               OutlinedButton(
-                                onPressed: () => _toggleVolume(volumesRead + 1, true),
+                                onPressed: () => _toggleVolume(maxVolume + 1, true),
                                 child: const Text('+1'),
                               ),
                             ],
