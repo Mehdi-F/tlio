@@ -149,7 +149,39 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                         );
                       }),
                     ),
-                  ],
+                  ] else
+                    // AniList has no volume count for this title, so there's
+                    // no fixed range to render chips for — an open-ended
+                    // stepper lets progress still be tracked (and still
+                    // feeds the same per-volume history as the chips).
+                    Builder(builder: (context) {
+                      final volumesRead = item?.volumesRead ?? 0;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$volumesRead ${context.tr('manga.volumesProgress')}',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              OutlinedButton(
+                                onPressed: volumesRead > 0
+                                    ? () => _toggleVolume(volumesRead, false)
+                                    : null,
+                                child: const Text('-1'),
+                              ),
+                              const SizedBox(width: 10),
+                              OutlinedButton(
+                                onPressed: () => _toggleVolume(volumesRead + 1, true),
+                                child: const Text('+1'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    }),
                   const SizedBox(height: 16),
                   FilledButton(
                     onPressed: item == null ? _ensureAdded : null,

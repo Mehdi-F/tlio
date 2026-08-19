@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/constants.dart';
@@ -10,6 +9,7 @@ import '../services/book_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/concurrency.dart';
 import '../widgets/app_page_route.dart';
+import '../widgets/media_tile.dart';
 import '../widgets/skeletons.dart';
 import 'book_detail_screen.dart';
 
@@ -167,12 +167,7 @@ class _BooksScreenState extends State<BooksScreen>
     if (!_showContent) return const MediaListSkeleton();
     final items = _filteredItems;
     if (items.isEmpty) {
-      return Center(
-        child: Text(
-          context.tr('books.empty'),
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-      );
+      return _EmptyState(icon: Icons.menu_book_outlined, message: context.tr('books.empty'));
     }
 
     final inProgress = items
@@ -188,12 +183,7 @@ class _BooksScreenState extends State<BooksScreen>
     final history = _historyExpanded ? finished.take(_historyVisibleCount).toList() : const <LibraryItem>[];
 
     if (inProgress.isEmpty && toRead.isEmpty && !hasAnyFinished) {
-      return Center(
-        child: Text(
-          context.tr('books.allCaughtUp'),
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-      );
+      return _EmptyState(icon: Icons.menu_book_outlined, message: context.tr('books.allCaughtUp'));
     }
 
     return ListView(
@@ -275,24 +265,38 @@ class _BooksScreenState extends State<BooksScreen>
   List<Widget> _itemTiles(BuildContext context, List<LibraryItem> items, {bool dimmed = false}) {
     return items.map((item) {
       final details = _resolved[item.docId];
-      return Opacity(
-        opacity: dimmed ? 0.6 : 1,
-        child: ListTile(
-          leading: SizedBox(
-            width: 44,
-            height: 62,
-            child: details?.thumbnailUrl != null
-                ? CachedNetworkImage(imageUrl: details!.thumbnailUrl!, fit: BoxFit.cover)
-                : Container(color: AppColors.surfaceVariant),
-          ),
-          title: Text(details?.title ?? item.sourceId, maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: item.type == 'book' && item.pagesTotal != null
-              ? Text('${item.pagesRead ?? 0}/${item.pagesTotal} ${context.tr('books.pagesProgress')}')
-              : null,
-          onTap: () => Navigator.of(context)
-              .push(appRoute(builder: (_) => BookDetailScreen(libraryItem: item))),
-        ),
+      final total = item.pagesTotal ?? details?.pageCount;
+      return MediaTile(
+        coverUrl: details?.thumbnailUrl,
+        title: details?.title ?? item.sourceId,
+        subtitle: item.type == 'book' && total != null
+            ? '${item.pagesRead ?? 0}/$total ${context.tr('books.pagesProgress')}'
+            : null,
+        dimmed: dimmed,
+        onTap: () => Navigator.of(context)
+            .push(appRoute(builder: (_) => BookDetailScreen(libraryItem: item))),
       );
     }).toList();
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+
+  const _EmptyState({required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.textSecondary, size: 40),
+          const SizedBox(height: 12),
+          Text(message, style: const TextStyle(color: AppColors.textSecondary)),
+        ],
+      ),
+    );
   }
 }

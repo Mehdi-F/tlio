@@ -84,7 +84,7 @@ class AppStrings {
       'profile.manga': 'Manga',
       'profile.stats': 'Statistiques',
       'profile.pagesRead': 'pages lues',
-      'profile.volumesRead': 'tomes lus',
+      'profile.volumesRead': 'tomes manga lus',
       'profile.titlesFinished': 'titres terminés',
     },
     'en': {
@@ -163,7 +163,7 @@ class AppStrings {
       'profile.manga': 'Manga',
       'profile.stats': 'Stats',
       'profile.pagesRead': 'pages read',
-      'profile.volumesRead': 'volumes read',
+      'profile.volumesRead': 'manga volumes read',
       'profile.titlesFinished': 'titles finished',
     },
   };

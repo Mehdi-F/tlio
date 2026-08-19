@@ -12,6 +12,7 @@ import '../services/library_service.dart';
 import '../services/manga_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_page_route.dart';
+import '../widgets/media_tile.dart';
 import 'book_detail_screen.dart';
 import 'manga_detail_screen.dart';
 
@@ -197,44 +198,21 @@ class _ExplorerScreenState extends State<ExplorerScreen>
   Widget _buildResults(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error) {
-      return Center(
-        child: Text(
-          context.tr('explorer.searchFailed'),
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-      );
+      return _EmptyState(icon: Icons.wifi_off, message: context.tr('explorer.searchFailed'));
     }
     if (_mode == _ExplorerMode.books) {
       if (_bookResults.isEmpty) {
-        return Center(
-          child: Text(
-            context.tr('explorer.noResults'),
-            style: const TextStyle(color: AppColors.textSecondary),
-          ),
-        );
+        return _EmptyState(icon: Icons.search_off, message: context.tr('explorer.noResults'));
       }
       return ListView.builder(
         itemCount: _bookResults.length,
         itemBuilder: (context, i) {
           final r = _bookResults[i];
           final inLibrary = _alreadyInLibrary('book', r.id);
-          return ListTile(
-            leading: SizedBox(
-              width: 40,
-              height: 56,
-              child: r.thumbnailUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: r.thumbnailUrl!,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(color: AppColors.surfaceVariant),
-            ),
-            title: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text(
-              r.authors.join(', '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+          return MediaTile(
+            coverUrl: r.thumbnailUrl,
+            title: r.title,
+            subtitle: r.authors.join(', '),
             trailing: inLibrary
                 ? const Icon(Icons.check_circle, color: AppColors.accent)
                 : IconButton(
@@ -249,27 +227,17 @@ class _ExplorerScreenState extends State<ExplorerScreen>
       );
     }
     if (_mangaResults.isEmpty) {
-      return Center(
-        child: Text(
-          context.tr('explorer.noResults'),
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-      );
+      return _EmptyState(icon: Icons.search_off, message: context.tr('explorer.noResults'));
     }
     return ListView.builder(
       itemCount: _mangaResults.length,
       itemBuilder: (context, i) {
         final r = _mangaResults[i];
         final inLibrary = _alreadyInLibrary('manga', '${r.id}');
-        return ListTile(
-          leading: SizedBox(
-            width: 40,
-            height: 56,
-            child: r.coverUrl != null
-                ? CachedNetworkImage(imageUrl: r.coverUrl!, fit: BoxFit.cover)
-                : Container(color: AppColors.surfaceVariant),
-          ),
-          title: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        return MediaTile(
+          coverUrl: r.coverUrl,
+          title: r.title,
+          placeholderIcon: Icons.auto_stories,
           trailing: inLibrary
               ? const Icon(Icons.check_circle, color: AppColors.accent)
               : IconButton(
@@ -281,6 +249,27 @@ class _ExplorerScreenState extends State<ExplorerScreen>
           ).push(appRoute(builder: (_) => MangaDetailScreen.preview(id: r.id))),
         );
       },
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+
+  const _EmptyState({required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.textSecondary, size: 40),
+          const SizedBox(height: 12),
+          Text(message, style: const TextStyle(color: AppColors.textSecondary)),
+        ],
+      ),
     );
   }
 }

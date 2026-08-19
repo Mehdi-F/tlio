@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/constants.dart';
@@ -10,6 +9,7 @@ import '../services/manga_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/concurrency.dart';
 import '../widgets/app_page_route.dart';
+import '../widgets/media_tile.dart';
 import '../widgets/skeletons.dart';
 import 'manga_detail_screen.dart';
 
@@ -154,7 +154,7 @@ class _MangaScreenState extends State<MangaScreen> {
       return [
         Padding(
           padding: const EdgeInsets.all(32),
-          child: Center(child: Text(context.tr('manga.empty'), style: const TextStyle(color: AppColors.textSecondary))),
+          child: _EmptyState(icon: Icons.auto_stories_outlined, message: context.tr('manga.empty')),
         ),
       ];
     }
@@ -166,7 +166,7 @@ class _MangaScreenState extends State<MangaScreen> {
       return [
         Padding(
           padding: const EdgeInsets.all(32),
-          child: Center(child: Text(context.tr('manga.allCaughtUp'), style: const TextStyle(color: AppColors.textSecondary))),
+          child: _EmptyState(icon: Icons.auto_stories_outlined, message: context.tr('manga.allCaughtUp')),
         ),
       ];
     }
@@ -186,18 +186,13 @@ class _MangaScreenState extends State<MangaScreen> {
       ...toRead.map((item) {
         final details = _resolved[item.docId];
         final total = item.volumesTotal ?? details?.volumes;
-        return ListTile(
-          leading: SizedBox(
-            width: 44,
-            height: 62,
-            child: details?.coverUrl != null
-                ? CachedNetworkImage(imageUrl: details!.coverUrl!, fit: BoxFit.cover)
-                : Container(color: AppColors.surfaceVariant),
-          ),
-          title: Text(details?.title ?? item.sourceId, maxLines: 1, overflow: TextOverflow.ellipsis),
+        return MediaTile(
+          coverUrl: details?.coverUrl,
+          title: details?.title ?? item.sourceId,
           subtitle: total != null
-              ? Text('${item.volumesRead ?? 0}/$total ${context.tr('manga.volumesProgress')}')
+              ? '${item.volumesRead ?? 0}/$total ${context.tr('manga.volumesProgress')}'
               : null,
+          placeholderIcon: Icons.auto_stories,
           onTap: () => Navigator.of(context).push(appRoute(builder: (_) => MangaDetailScreen(libraryItem: item))),
         );
       }),
@@ -240,18 +235,34 @@ class _MangaScreenState extends State<MangaScreen> {
   List<Widget> _historyEntryWidgets(BuildContext context, List<_HistoryEntry> entries) {
     return entries.map((e) {
       final details = _resolved[e.item.docId];
-      return ListTile(
-        dense: true,
-        leading: SizedBox(
-          width: 36,
-          height: 50,
-          child: details?.coverUrl != null
-              ? CachedNetworkImage(imageUrl: details!.coverUrl!, fit: BoxFit.cover)
-              : Container(color: AppColors.surfaceVariant),
-        ),
-        title: Text(details?.title ?? e.item.sourceId, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Text('Tome ${e.volume}'),
+      return MediaTile(
+        coverUrl: details?.coverUrl,
+        title: details?.title ?? e.item.sourceId,
+        subtitle: 'Tome ${e.volume}',
+        placeholderIcon: Icons.auto_stories,
+        dimmed: true,
       );
     }).toList();
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+
+  const _EmptyState({required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.textSecondary, size: 40),
+          const SizedBox(height: 12),
+          Text(message, style: const TextStyle(color: AppColors.textSecondary)),
+        ],
+      ),
+    );
   }
 }
