@@ -8,6 +8,7 @@ import '../providers/library_provider.dart';
 import '../services/library_service.dart';
 import '../services/manga_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/add_bar.dart';
 import '../widgets/detail_banner.dart';
 import '../widgets/expandable_text.dart';
 import '../widgets/skeletons.dart';
@@ -32,6 +33,7 @@ class MangaDetailScreen extends StatefulWidget {
 
 class _MangaDetailScreenState extends State<MangaDetailScreen> {
   LibraryItem? _libraryItem;
+  bool _favorite = false;
   MangaDetails? _details;
   bool _loadError = false;
   Future<LibraryItem?>? _addFuture;
@@ -44,6 +46,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     // this lookup the button always read "Ajouter" regardless of actual
     // state, since it only ever checked widget.libraryItem.
     _libraryItem = widget.libraryItem ?? _findExisting();
+    _favorite = _libraryItem?.favorite ?? false;
     _load();
   }
 
@@ -84,34 +87,33 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     return item;
   }
 
-  Future<void> _confirmRemove() async {
+  Future<void> _remove() async {
     final item = _libraryItem;
     if (item == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(context.tr('detail.removeConfirm')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(context.tr('common.cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(context.tr('detail.removeFromLibrary')),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
     final uid = context.read<AuthProvider>().user!.uid;
     await context.read<LibraryService>().removeFromLibrary(uid: uid, docId: item.docId);
-    if (mounted) {
-      setState(() {
-        _libraryItem = null;
-        _addFuture = null;
-      });
+    if (mounted) Navigator.of(context).maybePop();
+  }
+
+  Future<void> _toggleFavorite() async {
+    // Flip instantly, even if not added yet — same rationale as Showtime's
+    // _toggleFavorite: awaiting _ensureAdded() first would make favoriting
+    // a preview manga wait on a full addToLibrary round-trip before the
+    // heart visually changed at all.
+    final newValue = !_favorite;
+    final previous = _favorite;
+    setState(() => _favorite = newValue);
+    final item = await _ensureAdded();
+    if (item == null) {
+      if (mounted) setState(() => _favorite = previous);
+      return;
+    }
+    final uid = context.read<AuthProvider>().user!.uid;
+    try {
+      await context.read<LibraryService>().toggleFavorite(uid: uid, docId: item.docId, favorite: newValue);
+      if (mounted) setState(() => _libraryItem = item.copyWith(favorite: newValue));
+    } catch (_) {
+      if (mounted) setState(() => _favorite = previous);
     }
   }
 
@@ -169,7 +171,14 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DetailBanner(coverUrl: details.coverUrl, title: details.title),
+            DetailBanner(
+              coverUrl: details.coverUrl,
+              title: details.title,
+              inLibrary: item != null,
+              favorite: _favorite,
+              onToggleFavorite: _toggleFavorite,
+              onRemove: _remove,
+            ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -240,21 +249,19 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                         ],
                       );
                     }),
-                  const SizedBox(height: 16),
-                  if (item == null)
-                    FilledButton(
-                      onPressed: _ensureAdded,
-                      child: Text(context.tr('detail.addToLibrary')),
-                    )
-                  else
-                    OutlinedButton(
-                      onPressed: _confirmRemove,
-                      child: Text(context.tr('detail.removeFromLibrary')),
-                    ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+      bottomNavigationBar: AnimatedSlide(
+        offset: item == null ? Offset.zero : const Offset(0, 1),
+        duration: const Duration(milliseconds: 300),
+        child: AnimatedOpacity(
+          opacity: item == null ? 1 : 0,
+          duration: const Duration(milliseconds: 300),
+          child: AddBar(label: context.tr('detail.addToLibrary'), onTap: _ensureAdded),
         ),
       ),
     );

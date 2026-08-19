@@ -69,7 +69,6 @@ class AppStrings {
       // Detail
       'detail.addToLibrary': 'Ajouter à ma bibliothèque',
       'detail.removeFromLibrary': 'Retirer de la bibliothèque',
-      'detail.removeConfirm': 'Retirer ce titre de ta bibliothèque ?',
       'detail.status': 'Statut',
       'detail.statusReading': 'En cours',
       'detail.statusCompleted': 'Terminé',
@@ -152,7 +151,6 @@ class AppStrings {
 
       'detail.addToLibrary': 'Add to my library',
       'detail.removeFromLibrary': 'Remove from library',
-      'detail.removeConfirm': 'Remove this title from your library?',
       'detail.status': 'Status',
       'detail.statusReading': 'Reading',
       'detail.statusCompleted': 'Completed',
