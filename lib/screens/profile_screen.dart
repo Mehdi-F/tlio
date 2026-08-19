@@ -126,6 +126,12 @@ class _ProfileBodyState extends State<_ProfileBody> {
     final manga = resolved.where((r) => r.item.type == 'manga').toList()
       ..sort((a, b) => b.recency.compareTo(a.recency));
 
+    int byFavoritedAt(_Resolved a, _Resolved b) =>
+        (b.item.favoritedAt ?? b.recency).compareTo(a.item.favoritedAt ?? a.recency);
+    final booksFav = books.where((r) => r.item.favorite).toList()..sort(byFavoritedAt);
+    final comicsFav = comics.where((r) => r.item.favorite).toList()..sort(byFavoritedAt);
+    final mangaFav = manga.where((r) => r.item.favorite).toList()..sort(byFavoritedAt);
+
     final pagesRead = resolved
         .where((r) => r.item.type != 'manga')
         .fold<int>(0, (sum, r) => sum + (r.item.pagesRead ?? 0));
@@ -192,8 +198,11 @@ class _ProfileBodyState extends State<_ProfileBody> {
           ),
           const SizedBox(height: 12),
           _CarouselSection(title: context.tr('profile.books'), items: books),
+          _CarouselSection(title: context.tr('profile.booksFavorite'), items: booksFav, showHeart: true),
           _CarouselSection(title: context.tr('profile.comics'), items: comics),
+          _CarouselSection(title: context.tr('profile.comicsFavorite'), items: comicsFav, showHeart: true),
           _CarouselSection(title: context.tr('profile.manga'), items: manga),
+          _CarouselSection(title: context.tr('profile.mangaFavorite'), items: mangaFav, showHeart: true),
           const SizedBox(height: 24),
         ],
       ),
@@ -364,14 +373,26 @@ class _StatColumn extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
+  final bool showHeart;
 
-  const _SectionHeader({required this.title});
+  const _SectionHeader({required this.title, this.showHeart = false});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-      child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+      child: Row(
+        children: [
+          if (showHeart)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+              child: const Icon(Icons.favorite, color: Colors.white, size: 14),
+            ),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        ],
+      ),
     );
   }
 }
@@ -419,8 +440,9 @@ class _StatCard extends StatelessWidget {
 class _CarouselSection extends StatelessWidget {
   final String title;
   final List<_Resolved> items;
+  final bool showHeart;
 
-  const _CarouselSection({required this.title, required this.items});
+  const _CarouselSection({required this.title, required this.items, this.showHeart = false});
 
   @override
   Widget build(BuildContext context) {
@@ -428,7 +450,7 @@ class _CarouselSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(title: title),
+        _SectionHeader(title: title, showHeart: showHeart),
         SizedBox(
           height: 150,
           child: ListView.builder(
