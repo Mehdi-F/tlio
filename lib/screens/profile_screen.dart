@@ -15,6 +15,7 @@ import '../widgets/app_page_route.dart';
 import '../widgets/skeletons.dart';
 import 'book_detail_screen.dart';
 import 'manga_detail_screen.dart';
+import 'settings_screen.dart';
 
 class _Resolved {
   final LibraryItem item;
@@ -114,16 +115,53 @@ class _ProfileBodyState extends State<_ProfileBody> {
     if (mounted) setState(() => _showContent = true);
   }
 
+  Future<void> _editDisplayName(BuildContext context, String currentName) async {
+    final controller = TextEditingController(text: currentName);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(context.tr('dialog.editProfileName')),
+        content: TextField(controller: controller, autofocus: true),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(context.tr('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: Text(context.tr('common.save')),
+          ),
+        ],
+      ),
+    );
+    if (name != null && name.isNotEmpty && context.mounted) {
+      await context.read<AuthProvider>().updateDisplayName(name);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_showContent) return const Scaffold(body: ProfileSkeleton());
 
+    // Matches Showtime's own profile carousels (Séries/Films only include
+    // started/watched titles, not the full backlog) — without this, "Livres"
+    // showed every book in the library including ones never opened once.
+    bool isStarted(_Resolved r) =>
+        r.item.type == 'manga' ? (r.item.volumesRead ?? 0) > 0 : (r.item.pagesRead ?? 0) > 0;
+
     final resolved = _lastItems.map((i) => _resolved[i.docId]).whereType<_Resolved>().toList();
-    final books = resolved.where((r) => r.item.type == 'book').toList()
+    // Full per-type lists, for the top stat counts (total library size).
+    final allBooks = resolved.where((r) => r.item.type == 'book').toList();
+    final allComics = resolved.where((r) => r.item.type == 'comic').toList();
+    final allManga = resolved.where((r) => r.item.type == 'manga').toList();
+
+    // Carousel lists: only started/finished titles, not the full backlog.
+    final books = allBooks.where(isStarted).toList()
       ..sort((a, b) => b.recency.compareTo(a.recency));
-    final comics = resolved.where((r) => r.item.type == 'comic').toList()
+    final comics = allComics.where(isStarted).toList()
       ..sort((a, b) => b.recency.compareTo(a.recency));
-    final manga = resolved.where((r) => r.item.type == 'manga').toList()
+    final manga = allManga.where(isStarted).toList()
       ..sort((a, b) => b.recency.compareTo(a.recency));
 
     int byFavoritedAt(_Resolved a, _Resolved b) =>
@@ -163,12 +201,14 @@ class _ProfileBodyState extends State<_ProfileBody> {
             bannerCover: bannerCover,
             photoUrl: user?.photoURL,
             displayName: displayName,
+            onEdit: () => _editDisplayName(context, displayName),
             onSignOut: () => context.read<AuthProvider>().signOut(),
+            onSettings: () => Navigator.of(context).push(appRoute(builder: (_) => const SettingsScreen())),
           ),
           const SizedBox(height: 8),
           _StatsRow(
-            booksCount: books.length + comics.length,
-            mangaCount: manga.length,
+            booksCount: allBooks.length + allComics.length,
+            mangaCount: allManga.length,
             titlesFinished: titlesFinished,
           ),
           const SizedBox(height: 12),
@@ -214,13 +254,17 @@ class _ProfileHeader extends StatelessWidget {
   final String? bannerCover;
   final String? photoUrl;
   final String displayName;
+  final VoidCallback onEdit;
   final VoidCallback onSignOut;
+  final VoidCallback onSettings;
 
   const _ProfileHeader({
     required this.bannerCover,
     required this.photoUrl,
     required this.displayName,
+    required this.onEdit,
     required this.onSignOut,
+    required this.onSettings,
   });
 
   @override
@@ -266,6 +310,10 @@ class _ProfileHeader extends StatelessWidget {
                         color: AppColors.surface,
                         itemBuilder: (context) => [
                           PopupMenuItem(
+                            onTap: onSettings,
+                            child: Text(context.tr('settings.title')),
+                          ),
+                          PopupMenuItem(
                             onTap: onSignOut,
                             child: Text(context.tr('profile.signOut')),
                           ),
@@ -310,11 +358,31 @@ class _ProfileHeader extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Flexible(
-                child: Text(
-                  displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    OutlinedButton(
+                      onPressed: onEdit,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white54),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                      child: Text(
+                        context.tr('profile.editProfile'),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

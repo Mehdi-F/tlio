@@ -18,4 +18,10 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signInWithGoogle() => _authService.signInWithGoogle();
 
   Future<void> signOut() => _authService.signOut();
+
+  Future<void> updateDisplayName(String name) async {
+    await _authService.updateDisplayName(name);
+    _user = _authService.currentUser;
+    notifyListeners();
+  }
 }

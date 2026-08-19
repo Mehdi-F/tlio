@@ -7,6 +7,31 @@ class AppStrings {
       'nav.explore': 'Explorer',
       'nav.profile': 'Profil',
 
+      // Settings
+      'settings.title': 'Paramètres',
+      'settings.appearance': 'Apparence',
+      'settings.general': 'Général',
+      'settings.data': 'Données',
+      'settings.account': 'Compte',
+      'settings.theme': 'Thème',
+      'settings.themeLight': 'Clair',
+      'settings.themeDark': 'Sombre',
+      'settings.themeAuto': 'Auto',
+      'settings.language': 'Langue',
+      'settings.languageFrench': 'Français',
+      'settings.languageEnglish': 'Anglais',
+      'settings.clearCache': 'Vider le cache',
+      'settings.clearCacheDesc': 'Supprime les données en cache (Google Books, AniList)',
+      'settings.clearCacheConfirm': 'Vider le cache ?',
+      'settings.clearCacheConfirmDesc': 'Cela supprimera les données en cache. Tu pourras les recharger.',
+      'settings.cacheClear': 'Cache vidé',
+      'settings.logout': 'Déconnexion',
+      'settings.logoutConfirm': 'Déconnexion ?',
+      'settings.logoutDesc': 'Tu vas être déconnecté de ton compte.',
+
+      // Dialogs
+      'dialog.editProfileName': 'Modifier le nom du profil',
+
       // Common
       'common.ok': 'OK',
       'common.cancel': 'Annuler',
@@ -81,6 +106,7 @@ class AppStrings {
       'profile.comicsRead': 'BD lues',
       'profile.mangaRead': 'manga lus',
       'profile.signOut': 'Déconnexion',
+      'profile.editProfile': 'Modifier',
       'profile.books': 'Livres',
       'profile.booksFavorite': 'Livres favoris',
       'profile.comics': 'BD',
