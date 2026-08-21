@@ -25,7 +25,7 @@ void showSurpriseMeSheet(BuildContext context) {
   final items = context.read<LibraryProvider>().items;
   showModalBottomSheet(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.colorSurface,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (_) => _SurpriseSheet(items: items, book: context.read<BookService>(), manga: context.read<MangaService>()),
@@ -116,7 +116,7 @@ class _SurpriseSheetState extends State<_SurpriseSheet> {
               SizedBox(
                 height: 120,
                 child: Center(
-                  child: Text(context.tr('surprise.empty'), style: const TextStyle(color: AppColors.textSecondary)),
+                  child: Text(context.tr('surprise.empty'), style: TextStyle(color: context.colorTextSecondary)),
                 ),
               )
             else ...[
@@ -129,21 +129,21 @@ class _SurpriseSheetState extends State<_SurpriseSheet> {
                           imageUrl: pick.coverUrl!,
                           fit: BoxFit.cover,
                           errorWidget: (context, url, error) => Container(
-                            color: AppColors.surfaceVariant,
+                            color: context.colorSurfaceVariant,
                             alignment: Alignment.center,
                             child: Icon(
                               pick.item.type == 'manga' ? Icons.auto_stories : Icons.menu_book,
-                              color: AppColors.textSecondary,
+                              color: context.colorTextSecondary,
                               size: 48,
                             ),
                           ),
                         )
                       : Container(
-                          color: AppColors.surfaceVariant,
+                          color: context.colorSurfaceVariant,
                           alignment: Alignment.center,
                           child: Icon(
                             pick.item.type == 'manga' ? Icons.auto_stories : Icons.menu_book,
-                            color: AppColors.textSecondary,
+                            color: context.colorTextSecondary,
                             size: 48,
                           ),
                         ),

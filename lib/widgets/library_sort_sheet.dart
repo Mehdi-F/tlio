@@ -18,7 +18,7 @@ String librarySortLabel(BuildContext context, LibrarySort sort) {
 Future<LibrarySort?> showLibrarySortSheet(BuildContext context, LibrarySort initialSort) {
   return showModalBottomSheet<LibrarySort>(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.colorSurface,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
     builder: (_) => _LibrarySortSheet(initialSort: initialSort),

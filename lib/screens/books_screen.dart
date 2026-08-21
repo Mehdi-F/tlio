@@ -230,15 +230,15 @@ class _BooksScreenState extends State<BooksScreen>
   }
 
   List<Widget> _section(BuildContext context, String label, List<LibraryItem> items) {
-    return [_sectionHeader(label), ..._itemTiles(context, items)];
+    return [_sectionHeader(context, label), ..._itemTiles(context, items)];
   }
 
-  Widget _sectionHeader(String label) => Padding(
+  Widget _sectionHeader(BuildContext context, String label) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Text(
           label,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
+          style: TextStyle(
+            color: context.colorTextSecondary,
             fontSize: 12,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.5,
@@ -261,8 +261,8 @@ class _BooksScreenState extends State<BooksScreen>
           children: [
             Text(
               context.tr(_historyExpanded ? 'books.hideHistory' : 'books.showHistory'),
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: context.colorTextSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5,
@@ -270,7 +270,7 @@ class _BooksScreenState extends State<BooksScreen>
             ),
             Icon(
               _historyExpanded ? Icons.expand_less : Icons.expand_more,
-              color: AppColors.textSecondary,
+              color: context.colorTextSecondary,
               size: 20,
             ),
           ],
@@ -322,9 +322,9 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.textSecondary, size: 40),
+          Icon(icon, color: context.colorTextSecondary, size: 40),
           const SizedBox(height: 12),
-          Text(message, style: const TextStyle(color: AppColors.textSecondary)),
+          Text(message, style: TextStyle(color: context.colorTextSecondary)),
         ],
       ),
     );

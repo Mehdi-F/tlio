@@ -20,6 +20,20 @@ class AppColors {
   static const lightTextSecondary = Color(0xFF6B6153);
 }
 
+/// AppColors' fields are fixed dark-mode values by themselves — widgets that
+/// referenced them directly stayed dark even when the user picked light
+/// theme. These getters resolve the right variant from the active
+/// [Theme], the same way [buildAppTheme] already does for Material's own
+/// widgets (AppBar, Chip, etc).
+extension AppColorsContext on BuildContext {
+  bool get _isDarkMode => Theme.of(this).brightness == Brightness.dark;
+  Color get colorBackground => _isDarkMode ? AppColors.background : AppColors.lightBackground;
+  Color get colorSurface => _isDarkMode ? AppColors.surface : AppColors.lightSurface;
+  Color get colorSurfaceVariant => _isDarkMode ? AppColors.surfaceVariant : AppColors.lightSurfaceVariant;
+  Color get colorTextPrimary => _isDarkMode ? AppColors.textPrimary : AppColors.lightTextPrimary;
+  Color get colorTextSecondary => _isDarkMode ? AppColors.textSecondary : AppColors.lightTextSecondary;
+}
+
 ThemeData buildAppTheme({bool isDark = true}) {
   final bg = isDark ? AppColors.background : AppColors.lightBackground;
   final surface = isDark ? AppColors.surface : AppColors.lightSurface;

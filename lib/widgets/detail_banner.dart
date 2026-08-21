@@ -28,10 +28,10 @@ class DetailBanner extends StatelessWidget {
     this.placeholderIcon = Icons.menu_book,
   });
 
-  Widget _placeholder() => Container(
-        color: AppColors.surfaceVariant,
+  Widget _placeholder(BuildContext context) => Container(
+        color: context.colorSurfaceVariant,
         alignment: Alignment.center,
-        child: Icon(placeholderIcon, color: AppColors.textSecondary, size: 56),
+        child: Icon(placeholderIcon, color: context.colorTextSecondary, size: 56),
       );
 
   @override
@@ -45,9 +45,9 @@ class DetailBanner extends StatelessWidget {
               ? CachedNetworkImage(
                   imageUrl: coverUrl!,
                   fit: BoxFit.cover,
-                  errorWidget: (context, url, error) => _placeholder(),
+                  errorWidget: (context, url, error) => _placeholder(context),
                 )
-              : _placeholder(),
+              : _placeholder(context),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -88,7 +88,7 @@ class DetailBanner extends StatelessWidget {
                       if (inLibrary)
                         PopupMenuButton<void>(
                           icon: const Icon(Icons.more_vert, color: Colors.white),
-                          color: AppColors.surface,
+                          color: context.colorSurface,
                           itemBuilder: (context) => [
                             PopupMenuItem(
                               onTap: onRemove,

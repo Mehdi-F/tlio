@@ -160,7 +160,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   AppBar _minimalAppBar() => AppBar(
     backgroundColor: Colors.transparent,
     elevation: 0,
-    foregroundColor: Colors.white,
   );
 
   @override
@@ -174,9 +173,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'Impossible de charger ce titre.',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.colorTextSecondary),
                 ),
                 const SizedBox(height: 12),
                 FilledButton(onPressed: _load, child: const Text('Réessayer')),
@@ -213,7 +212,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   if (details.authors.isNotEmpty) ...[
                     Text(
                       '${context.tr('detail.by')} ${details.authors.join(', ')}',
-                      style: const TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: context.colorTextSecondary),
                     ),
                     const SizedBox(height: 16),
                   ],

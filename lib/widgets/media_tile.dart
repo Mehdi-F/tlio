@@ -32,7 +32,7 @@ class MediaTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          color: AppColors.surface,
+          color: context.colorSurface,
           margin: const EdgeInsets.only(bottom: 2),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
@@ -47,15 +47,15 @@ class MediaTile extends StatelessWidget {
                           imageUrl: coverUrl!,
                           fit: BoxFit.cover,
                           errorWidget: (context, url, error) => Container(
-                            color: AppColors.surfaceVariant,
+                            color: context.colorSurfaceVariant,
                             alignment: Alignment.center,
-                            child: Icon(placeholderIcon, color: AppColors.textSecondary, size: 20),
+                            child: Icon(placeholderIcon, color: context.colorTextSecondary, size: 20),
                           ),
                         )
                       : Container(
-                          color: AppColors.surfaceVariant,
+                          color: context.colorSurfaceVariant,
                           alignment: Alignment.center,
-                          child: Icon(placeholderIcon, color: AppColors.textSecondary, size: 20),
+                          child: Icon(placeholderIcon, color: context.colorTextSecondary, size: 20),
                         ),
                 ),
               ),
@@ -75,7 +75,7 @@ class MediaTile extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         subtitle!,
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                        style: TextStyle(color: context.colorTextSecondary, fontSize: 13),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

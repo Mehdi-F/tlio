@@ -271,9 +271,9 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.textSecondary, size: 40),
+          Icon(icon, color: context.colorTextSecondary, size: 40),
           const SizedBox(height: 12),
-          Text(message, style: const TextStyle(color: AppColors.textSecondary)),
+          Text(message, style: TextStyle(color: context.colorTextSecondary)),
         ],
       ),
     );
@@ -297,10 +297,10 @@ class _CategoryTile extends StatelessWidget {
     this.placeholderIcon = Icons.menu_book,
   });
 
-  Widget _placeholder() => Container(
-        color: AppColors.surfaceVariant,
+  Widget _placeholder(BuildContext context) => Container(
+        color: context.colorSurfaceVariant,
         alignment: Alignment.center,
-        child: Icon(placeholderIcon, color: AppColors.textSecondary, size: 28),
+        child: Icon(placeholderIcon, color: context.colorTextSecondary, size: 28),
       );
 
   @override
@@ -323,9 +323,9 @@ class _CategoryTile extends StatelessWidget {
                         ? CachedNetworkImage(
                             imageUrl: imageUrl!,
                             fit: BoxFit.cover,
-                            errorWidget: (context, url, error) => _placeholder(),
+                            errorWidget: (context, url, error) => _placeholder(context),
                           )
-                        : _placeholder(),
+                        : _placeholder(context),
                   ),
                 ),
                 Positioned(

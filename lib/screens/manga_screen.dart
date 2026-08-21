@@ -202,8 +202,8 @@ class _MangaScreenState extends State<MangaScreen> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Text(
           context.tr('manga.toRead'),
-          style: const TextStyle(
-            color: AppColors.textSecondary,
+          style: TextStyle(
+            color: context.colorTextSecondary,
             fontSize: 12,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.5,
@@ -241,9 +241,9 @@ class _MangaScreenState extends State<MangaScreen> {
           children: [
             Text(
               context.tr(_historyExpanded ? 'manga.hideHistory' : 'manga.showHistory'),
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+              style: TextStyle(color: context.colorTextSecondary, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5),
             ),
-            Icon(_historyExpanded ? Icons.expand_less : Icons.expand_more, color: AppColors.textSecondary, size: 20),
+            Icon(_historyExpanded ? Icons.expand_less : Icons.expand_more, color: context.colorTextSecondary, size: 20),
           ],
         ),
       ),
@@ -285,9 +285,9 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.textSecondary, size: 40),
+          Icon(icon, color: context.colorTextSecondary, size: 40),
           const SizedBox(height: 12),
-          Text(message, style: const TextStyle(color: AppColors.textSecondary)),
+          Text(message, style: TextStyle(color: context.colorTextSecondary)),
         ],
       ),
     );

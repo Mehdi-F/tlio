@@ -137,7 +137,6 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   AppBar _minimalAppBar() => AppBar(
     backgroundColor: Colors.transparent,
     elevation: 0,
-    foregroundColor: Colors.white,
   );
 
   @override
@@ -151,7 +150,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Impossible de charger ce titre.', style: TextStyle(color: AppColors.textSecondary)),
+                Text('Impossible de charger ce titre.', style: TextStyle(color: context.colorTextSecondary)),
                 const SizedBox(height: 12),
                 FilledButton(onPressed: _load, child: const Text('Réessayer')),
               ],
