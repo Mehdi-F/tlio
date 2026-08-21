@@ -260,7 +260,7 @@ class _FriendProfileState extends State<_FriendProfile> {
         child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
       ),
       SizedBox(
-        height: 150,
+        height: 180,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -277,33 +277,45 @@ class _FriendProfileState extends State<_FriendProfile> {
                 )),
                 child: SizedBox(
                   width: 90,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: r.coverUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: r.coverUrl!,
-                            fit: BoxFit.cover,
-                            height: 130,
-                            width: 90,
-                            errorWidget: (context, url, error) => Container(
-                              color: context.colorSurfaceVariant,
-                              height: 130,
-                              width: 90,
-                              child: Icon(
-                                r.item.type == 'manga' ? Icons.auto_stories : Icons.menu_book,
-                                color: context.colorTextSecondary,
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: context.colorSurfaceVariant,
-                            height: 130,
-                            width: 90,
-                            child: Icon(
-                              r.item.type == 'manga' ? Icons.auto_stories : Icons.menu_book,
-                              color: context.colorTextSecondary,
-                            ),
-                          ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: SizedBox(
+                          width: 90,
+                          height: 120,
+                          child: r.coverUrl != null
+                              ? CachedNetworkImage(
+                                  imageUrl: r.coverUrl!,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (context, url, error) => Container(
+                                    color: context.colorSurfaceVariant,
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      r.item.type == 'manga' ? Icons.auto_stories : Icons.menu_book,
+                                      color: context.colorTextSecondary,
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  color: context.colorSurfaceVariant,
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    r.item.type == 'manga' ? Icons.auto_stories : Icons.menu_book,
+                                    color: context.colorTextSecondary,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        r.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11, height: 1.2),
+                      ),
+                    ],
                   ),
                 ),
               ),
