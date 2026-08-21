@@ -15,6 +15,7 @@ class DetailBanner extends StatelessWidget {
   final bool favorite;
   final VoidCallback onToggleFavorite;
   final VoidCallback onRemove;
+  final IconData placeholderIcon;
 
   const DetailBanner({
     super.key,
@@ -24,7 +25,14 @@ class DetailBanner extends StatelessWidget {
     required this.favorite,
     required this.onToggleFavorite,
     required this.onRemove,
+    this.placeholderIcon = Icons.menu_book,
   });
+
+  Widget _placeholder() => Container(
+        color: AppColors.surfaceVariant,
+        alignment: Alignment.center,
+        child: Icon(placeholderIcon, color: AppColors.textSecondary, size: 56),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +45,9 @@ class DetailBanner extends StatelessWidget {
               ? CachedNetworkImage(
                   imageUrl: coverUrl!,
                   fit: BoxFit.cover,
-                  errorWidget: (context, url, error) => Container(color: AppColors.surfaceVariant),
+                  errorWidget: (context, url, error) => _placeholder(),
                 )
-              : Container(color: AppColors.surfaceVariant),
+              : _placeholder(),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(

@@ -178,6 +178,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
               favorite: _favorite,
               onToggleFavorite: _toggleFavorite,
               onRemove: _remove,
+              placeholderIcon: Icons.auto_stories,
             ),
             Padding(
               padding: const EdgeInsets.all(16),

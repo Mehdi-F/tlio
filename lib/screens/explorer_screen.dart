@@ -285,13 +285,21 @@ class _CategoryTile extends StatelessWidget {
   final VoidCallback onTap;
   final bool inLibrary;
   final VoidCallback onAdd;
+  final IconData placeholderIcon;
 
   const _CategoryTile({
     required this.imageUrl,
     required this.onTap,
     required this.inLibrary,
     required this.onAdd,
+    this.placeholderIcon = Icons.menu_book,
   });
+
+  Widget _placeholder() => Container(
+        color: AppColors.surfaceVariant,
+        alignment: Alignment.center,
+        child: Icon(placeholderIcon, color: AppColors.textSecondary, size: 28),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -310,9 +318,9 @@ class _CategoryTile extends StatelessWidget {
                     ? CachedNetworkImage(
                         imageUrl: imageUrl!,
                         fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => Container(color: AppColors.surfaceVariant),
+                        errorWidget: (context, url, error) => _placeholder(),
                       )
-                    : Container(color: AppColors.surfaceVariant),
+                    : _placeholder(),
               ),
             ),
             Positioned(
@@ -426,6 +434,7 @@ class _MangaCategoryRowState extends State<_MangaCategoryRow> {
               onTap: () => Navigator.of(context).push(
                 appRoute(builder: (_) => MangaDetailScreen.preview(id: r.id)),
               ),
+              placeholderIcon: Icons.auto_stories,
             );
           },
         );
