@@ -1,6 +1,13 @@
 # Worktree isolation
 .worktrees/
 
+# Local tooling/planning artifacts, not part of the shipped app
+docs/superpowers/
+
+# Contains the real allowlisted emails; deployed to Firebase directly via
+# `firebase deploy --only firestore:rules`, not via the public repo.
+firestore.rules
+
 # Miscellaneous
 *.class
 *.log
