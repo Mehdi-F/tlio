@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'services/auth_service.dart';
 import 'services/library_service.dart';
+import 'services/link_service.dart';
 import 'services/book_service.dart';
 import 'services/manga_service.dart';
 import 'providers/auth_provider.dart';
@@ -32,6 +33,7 @@ class TlioApp extends StatelessWidget {
         Provider(create: (_) => BookService()),
         Provider(create: (_) => MangaService()),
         Provider(create: (_) => LibraryService()),
+        Provider(create: (_) => LinkService()),
         ChangeNotifierProvider(create: (_) => AuthProvider(AuthService())),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
@@ -69,6 +71,12 @@ class AuthGate extends StatelessWidget {
       return const LoginScreen();
     }
     context.read<LibraryProvider>().watch(user.uid);
+    context.read<LinkService>().ensureProfile(
+          uid: user.uid,
+          displayName: user.displayName,
+          email: user.email,
+          photoUrl: user.photoURL,
+        );
     return const HomeShell();
   }
 }

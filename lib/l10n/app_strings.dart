@@ -116,6 +116,7 @@ class AppStrings {
       'profile.mangaRead': 'manga lus',
       'profile.signOut': 'Déconnexion',
       'profile.editProfile': 'Modifier',
+      'profile.friends': 'Amis',
       'profile.books': 'Livres',
       'profile.booksFavorite': 'Livres favoris',
       'profile.comics': 'BD',
@@ -147,6 +148,19 @@ class AppStrings {
       'recap.outro': 'À l\'année prochaine !',
       'recap.error': 'Impossible de charger ton bilan.',
       'recap.empty': 'Pas encore assez de lecture cette année pour un bilan.',
+
+      // Friends
+      'friends.title': 'Amis',
+      'friends.placeholder': 'L\'autre personne n\'a pas encore ouvert l\'application.',
+      'friends.emptyLibrary': 'Bibliothèque vide pour le moment.',
+
+      // Compare
+      'compare.title': 'Comparaison',
+      'compare.cardTitle': 'Comparer nos bibliothèques',
+      'compare.you': 'Toi',
+      'compare.commonTitles': 'TITRES EN COMMUN',
+      'compare.noCommon': 'Aucun titre en commun pour le moment.',
+      'compare.error': 'Impossible de charger la comparaison.',
     },
     'en': {
       'nav.books': 'Books & Comics',
@@ -229,6 +243,7 @@ class AppStrings {
       'profile.comicsRead': 'comics read',
       'profile.mangaRead': 'manga read',
       'profile.signOut': 'Sign out',
+      'profile.friends': 'Friends',
       'profile.books': 'Books',
       'profile.booksFavorite': 'Favorite books',
       'profile.comics': 'Comics',
@@ -258,6 +273,17 @@ class AppStrings {
       'recap.outro': 'See you next year!',
       'recap.error': 'Couldn\'t load your recap.',
       'recap.empty': 'Not enough reading this year yet for a recap.',
+
+      'friends.title': 'Friends',
+      'friends.placeholder': 'The other person hasn\'t opened the app yet.',
+      'friends.emptyLibrary': 'Nothing in their library yet.',
+
+      'compare.title': 'Comparison',
+      'compare.cardTitle': 'Compare our libraries',
+      'compare.you': 'You',
+      'compare.commonTitles': 'COMMON TITLES',
+      'compare.noCommon': 'No common titles yet.',
+      'compare.error': 'Couldn\'t load the comparison.',
     },
   };
 

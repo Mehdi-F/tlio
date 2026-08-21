@@ -15,6 +15,7 @@ import '../widgets/app_page_route.dart';
 import '../widgets/skeletons.dart';
 import '../widgets/surprise_me_sheet.dart';
 import 'book_detail_screen.dart';
+import 'friends_screen.dart';
 import 'manga_detail_screen.dart';
 import 'settings_screen.dart';
 import 'year_recap_screen.dart';
@@ -229,6 +230,21 @@ class _ProfileBodyState extends State<_ProfileBody> {
             ),
           ],
           const SizedBox(height: 12),
+          const Divider(height: 33, indent: 16, endIndent: 16),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).push(appRoute(builder: (_) => const FriendsScreen())),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(context.tr('profile.friends'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                  Icon(Icons.chevron_right, color: context.colorTextSecondary),
+                ],
+              ),
+            ),
+          ),
           const Divider(height: 33, indent: 16, endIndent: 16),
           _SectionHeader(title: context.tr('profile.stats')),
           Padding(
