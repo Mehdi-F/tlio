@@ -34,7 +34,11 @@ class DetailBanner extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           coverUrl != null
-              ? CachedNetworkImage(imageUrl: coverUrl!, fit: BoxFit.cover)
+              ? CachedNetworkImage(
+                  imageUrl: coverUrl!,
+                  fit: BoxFit.cover,
+                  errorWidget: (context, url, error) => Container(color: AppColors.surfaceVariant),
+                )
               : Container(color: AppColors.surfaceVariant),
           const DecoratedBox(
             decoration: BoxDecoration(

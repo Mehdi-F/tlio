@@ -43,7 +43,15 @@ class MediaTile extends StatelessWidget {
                   width: 48,
                   height: 68,
                   child: coverUrl != null
-                      ? CachedNetworkImage(imageUrl: coverUrl!, fit: BoxFit.cover)
+                      ? CachedNetworkImage(
+                          imageUrl: coverUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.surfaceVariant,
+                            alignment: Alignment.center,
+                            child: Icon(placeholderIcon, color: AppColors.textSecondary, size: 20),
+                          ),
+                        )
                       : Container(
                           color: AppColors.surfaceVariant,
                           alignment: Alignment.center,

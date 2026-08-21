@@ -307,7 +307,11 @@ class _CategoryTile extends StatelessWidget {
                 width: 100,
                 height: 140,
                 child: imageUrl != null
-                    ? CachedNetworkImage(imageUrl: imageUrl!, fit: BoxFit.cover)
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl!,
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) => Container(color: AppColors.surfaceVariant),
+                      )
                     : Container(color: AppColors.surfaceVariant),
               ),
             ),

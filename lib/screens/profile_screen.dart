@@ -302,7 +302,11 @@ class _ProfileHeader extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (bannerCover != null)
-                    CachedNetworkImage(imageUrl: bannerCover!, fit: BoxFit.cover)
+                    CachedNetworkImage(
+                      imageUrl: bannerCover!,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Container(color: AppColors.surfaceVariant),
+                    )
                   else
                     Container(color: AppColors.surfaceVariant),
                   DecoratedBox(
@@ -365,6 +369,11 @@ class _ProfileHeader extends StatelessWidget {
                           fit: BoxFit.cover,
                           width: avatarSize,
                           height: avatarSize,
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.surfaceVariant,
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.person, color: AppColors.textSecondary, size: 40),
+                          ),
                         )
                       : Container(
                           color: AppColors.surfaceVariant,
@@ -564,6 +573,12 @@ class _CarouselSection extends StatelessWidget {
                               fit: BoxFit.cover,
                               height: 130,
                               width: 90,
+                              errorWidget: (context, url, error) => Container(
+                                color: AppColors.surfaceVariant,
+                                height: 130,
+                                width: 90,
+                                child: const Icon(Icons.menu_book, color: AppColors.textSecondary),
+                              ),
                             )
                           : Container(
                               color: AppColors.surfaceVariant,

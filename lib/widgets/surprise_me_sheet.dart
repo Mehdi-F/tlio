@@ -125,7 +125,19 @@ class _SurpriseSheetState extends State<_SurpriseSheet> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: pick.coverUrl != null
-                      ? CachedNetworkImage(imageUrl: pick.coverUrl!, fit: BoxFit.cover)
+                      ? CachedNetworkImage(
+                          imageUrl: pick.coverUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.surfaceVariant,
+                            alignment: Alignment.center,
+                            child: Icon(
+                              pick.item.type == 'manga' ? Icons.auto_stories : Icons.menu_book,
+                              color: AppColors.textSecondary,
+                              size: 48,
+                            ),
+                          ),
+                        )
                       : Container(
                           color: AppColors.surfaceVariant,
                           alignment: Alignment.center,
