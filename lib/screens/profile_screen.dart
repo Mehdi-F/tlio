@@ -13,9 +13,11 @@ import '../theme/app_theme.dart';
 import '../utils/concurrency.dart';
 import '../widgets/app_page_route.dart';
 import '../widgets/skeletons.dart';
+import '../widgets/surprise_me_sheet.dart';
 import 'book_detail_screen.dart';
 import 'manga_detail_screen.dart';
 import 'settings_screen.dart';
+import 'year_recap_screen.dart';
 
 class _Resolved {
   final LibraryItem item;
@@ -211,6 +213,21 @@ class _ProfileBodyState extends State<_ProfileBody> {
             mangaCount: allManga.length,
             titlesFinished: titlesFinished,
           ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _SurpriseMeCard(onTap: () => showSurpriseMeSheet(context)),
+          ),
+          if (isRecapSeason()) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _RecapCard(
+                year: currentRecapYear(),
+                onTap: () => Navigator.of(context).push(appRoute(builder: (_) => YearRecapScreen(year: currentRecapYear()))),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           const Divider(height: 33, indent: 16, endIndent: 16),
           _SectionHeader(title: context.tr('profile.stats')),
@@ -563,6 +580,80 @@ class _CarouselSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
       ],
+    );
+  }
+}
+
+class _SurpriseMeCard extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _SurpriseMeCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(color: AppColors.surfaceVariant, borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          children: [
+            const Icon(Icons.casino_outlined, color: AppColors.accent, size: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(context.tr('surprise.cardTitle'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  Text(context.tr('surprise.cardSubtitle'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecapCard extends StatelessWidget {
+  final int year;
+  final VoidCallback onTap;
+
+  const _RecapCard({required this.year, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(color: AppColors.surfaceVariant, borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: AppColors.accent, size: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    context.tr('recap.cardTitle').replaceAll('{year}', '$year'),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
+                  Text(context.tr('recap.cardSubtitle'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
     );
   }
 }

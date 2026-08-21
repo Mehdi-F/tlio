@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/localization_context.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/offline_banner.dart';
 import 'books_screen.dart';
 import 'manga_screen.dart';
 import 'explorer_screen.dart';
@@ -29,11 +30,18 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     context.watch<SettingsProvider>();
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
+      body: Column(
         children: [
-          for (var i = 0; i < _screens.length; i++)
-            _visited.contains(i) ? _screens[i] : const SizedBox.shrink(),
+          const OfflineBanner(),
+          Expanded(
+            child: IndexedStack(
+              index: _index,
+              children: [
+                for (var i = 0; i < _screens.length; i++)
+                  _visited.contains(i) ? _screens[i] : const SizedBox.shrink(),
+              ],
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: NavigationBar(

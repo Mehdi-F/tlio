@@ -9,6 +9,7 @@ import 'services/library_service.dart';
 import 'services/book_service.dart';
 import 'services/manga_service.dart';
 import 'providers/auth_provider.dart';
+import 'providers/connectivity_provider.dart';
 import 'providers/library_provider.dart';
 import 'providers/settings_provider.dart';
 import 'screens/login_screen.dart';
@@ -33,6 +34,7 @@ class TlioApp extends StatelessWidget {
         Provider(create: (_) => LibraryService()),
         ChangeNotifierProvider(create: (_) => AuthProvider(AuthService())),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (context) => LibraryProvider(context.read<LibraryService>())),
       ],
       child: Consumer<SettingsProvider>(

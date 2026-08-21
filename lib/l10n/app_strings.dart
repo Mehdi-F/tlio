@@ -48,6 +48,7 @@ class AppStrings {
       'common.sortBy': 'Trier par',
       'common.reset': 'Réinitialiser',
       'common.apply': 'Appliquer',
+      'common.offline': 'Hors ligne — synchronisation au retour de la connexion',
 
       // Sort
       'sort.lastActivity': 'Activité récente',
@@ -125,6 +126,27 @@ class AppStrings {
       'profile.pagesRead': 'pages lues',
       'profile.volumesRead': 'tomes manga lus',
       'profile.titlesFinished': 'titres terminés',
+
+      // Surprise me
+      'surprise.title': 'Pioche du jour',
+      'surprise.cardTitle': 'Surprends-moi',
+      'surprise.cardSubtitle': 'Tire un titre au hasard dans ta bibliothèque',
+      'surprise.empty': 'Rien à piocher pour le moment.',
+      'surprise.notFound': 'Titre introuvable',
+      'surprise.open': 'Ouvrir',
+      'surprise.reroll': 'Relancer',
+
+      // Year recap
+      'recap.cardTitle': 'Bilan {year}',
+      'recap.cardSubtitle': 'Ton année de lecture en un coup d\'œil',
+      'recap.introTitle': 'Ton bilan {year}',
+      'recap.titlesFinished': 'titres terminés',
+      'recap.mangaVolumesRead': 'tomes manga lus',
+      'recap.pagesRead': 'pages lues',
+      'recap.itemsAdded': 'titres ajoutés à ta bibliothèque',
+      'recap.outro': 'À l\'année prochaine !',
+      'recap.error': 'Impossible de charger ton bilan.',
+      'recap.empty': 'Pas encore assez de lecture cette année pour un bilan.',
     },
     'en': {
       'nav.books': 'Books & Comics',
@@ -147,6 +169,7 @@ class AppStrings {
       'common.sortBy': 'Sort by',
       'common.reset': 'Reset',
       'common.apply': 'Apply',
+      'common.offline': 'Offline — will sync once reconnected',
 
       'sort.lastActivity': 'Recent activity',
       'sort.lastAdded': 'Date added',
@@ -216,6 +239,25 @@ class AppStrings {
       'profile.pagesRead': 'pages read',
       'profile.volumesRead': 'manga volumes read',
       'profile.titlesFinished': 'titles finished',
+
+      'surprise.title': 'Today\'s pick',
+      'surprise.cardTitle': 'Surprise me',
+      'surprise.cardSubtitle': 'Pick a random title from your library',
+      'surprise.empty': 'Nothing to pick right now.',
+      'surprise.notFound': 'Title not found',
+      'surprise.open': 'Open',
+      'surprise.reroll': 'Reroll',
+
+      'recap.cardTitle': '{year} recap',
+      'recap.cardSubtitle': 'Your reading year at a glance',
+      'recap.introTitle': 'Your {year} recap',
+      'recap.titlesFinished': 'titles finished',
+      'recap.mangaVolumesRead': 'manga volumes read',
+      'recap.pagesRead': 'pages read',
+      'recap.itemsAdded': 'titles added to your library',
+      'recap.outro': 'See you next year!',
+      'recap.error': 'Couldn\'t load your recap.',
+      'recap.empty': 'Not enough reading this year yet for a recap.',
     },
   };
 
