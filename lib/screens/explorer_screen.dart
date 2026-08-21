@@ -282,6 +282,7 @@ class _EmptyState extends StatelessWidget {
 
 class _CategoryTile extends StatelessWidget {
   final String? imageUrl;
+  final String title;
   final VoidCallback onTap;
   final bool inLibrary;
   final VoidCallback onAdd;
@@ -289,6 +290,7 @@ class _CategoryTile extends StatelessWidget {
 
   const _CategoryTile({
     required this.imageUrl,
+    required this.title,
     required this.onTap,
     required this.inLibrary,
     required this.onAdd,
@@ -307,37 +309,49 @@ class _CategoryTile extends StatelessWidget {
       onTap: onTap,
       child: SizedBox(
         width: 100,
-        child: Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SizedBox(
-                width: 100,
-                height: 140,
-                child: imageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl!,
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => _placeholder(),
-                      )
-                    : _placeholder(),
-              ),
-            ),
-            Positioned(
-              right: 2,
-              bottom: 2,
-              child: GestureDetector(
-                onTap: inLibrary ? null : onAdd,
-                child: Container(
-                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                  padding: const EdgeInsets.all(2),
-                  child: Icon(
-                    inLibrary ? Icons.check_circle : Icons.add_circle_outline,
-                    color: inLibrary ? Colors.greenAccent : Colors.white,
-                    size: 20,
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: SizedBox(
+                    width: 100,
+                    height: 120,
+                    child: imageUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: imageUrl!,
+                            fit: BoxFit.cover,
+                            errorWidget: (context, url, error) => _placeholder(),
+                          )
+                        : _placeholder(),
                   ),
                 ),
-              ),
+                Positioned(
+                  right: 2,
+                  bottom: 2,
+                  child: GestureDetector(
+                    onTap: inLibrary ? null : onAdd,
+                    child: Container(
+                      decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                      padding: const EdgeInsets.all(2),
+                      child: Icon(
+                        inLibrary ? Icons.check_circle : Icons.add_circle_outline,
+                        color: inLibrary ? Colors.greenAccent : Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11, height: 1.2),
             ),
           ],
         ),
@@ -381,6 +395,7 @@ class _BookCategoryRowState extends State<_BookCategoryRow> {
             final r = items[i];
             return _CategoryTile(
               imageUrl: r.thumbnailUrl,
+              title: r.title,
               inLibrary: widget.alreadyInLibrary('book', r.id),
               onAdd: () => widget.onAdd(r),
               onTap: () => Navigator.of(context).push(
@@ -429,6 +444,7 @@ class _MangaCategoryRowState extends State<_MangaCategoryRow> {
             final r = items[i];
             return _CategoryTile(
               imageUrl: r.coverUrl,
+              title: r.title,
               inLibrary: widget.alreadyInLibrary('manga', '${r.id}'),
               onAdd: () => widget.onAdd(r),
               onTap: () => Navigator.of(context).push(
@@ -464,7 +480,7 @@ class _CategoryRowLayout extends StatelessWidget {
           child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         ),
         SizedBox(
-          height: 150,
+          height: 180,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
