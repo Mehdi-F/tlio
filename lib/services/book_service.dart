@@ -54,7 +54,7 @@ class BookService {
     }
 
     try {
-      final response = await _client.get(uri).timeout(_requestTimeout);
+      final response = await _getWithRetry(uri);
       if (response.statusCode != 200) {
         throw GoogleBooksException('$errorLabel failed', statusCode: response.statusCode);
       }
@@ -73,13 +73,25 @@ class BookService {
     return uri.replace(queryParameters: {...uri.queryParameters, 'key': GoogleBooksConfig.apiKey});
   }
 
+  /// Google Books intermittently returns 503 on an otherwise-valid request
+  /// (reproducible with plain curl, no browser/CORS involved) — a couple of
+  /// short retries clears most of them instead of surfacing a hard error
+  /// for what's really just backend flakiness.
+  Future<http.Response> _getWithRetry(Uri uri, {int retries = 2}) async {
+    for (var attempt = 0; ; attempt++) {
+      final response = await _client.get(uri).timeout(_requestTimeout);
+      if (response.statusCode < 500 || attempt >= retries) return response;
+      await Future.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+    }
+  }
+
   /// Search is deliberately not cached — it has its own always-fresh
   /// expectation, same rationale as Showtime's `TmdbService.search`.
   Future<List<BookSearchResult>> search(String query) async {
     final uri = _withKey(Uri.parse('${GoogleBooksConfig.baseUrl}/volumes').replace(
       queryParameters: {'q': query, 'maxResults': '20'},
     ));
-    final response = await _client.get(uri).timeout(_requestTimeout);
+    final response = await _getWithRetry(uri);
     if (response.statusCode != 200) {
       throw GoogleBooksException('Search failed', statusCode: response.statusCode);
     }
