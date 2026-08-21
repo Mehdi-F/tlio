@@ -123,17 +123,26 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     // _toggleFavorite: awaiting _ensureAdded() first would make favoriting
     // a preview book wait on a full addToLibrary round-trip before the
     // heart visually changed at all.
+    //
+    // uid/libraryService are captured before the await on purpose: reading
+    // them via context *after* an await is what broke this — if the user
+    // navigates away while _ensureAdded() is still in flight (e.g. taps
+    // "Marquer comme terminé" then immediately backs out), the widget is
+    // disposed by the time the await resolves, context.read throws, and
+    // the actual Firestore write never happens — even though the item
+    // looked added in the meantime.
     final newValue = !_favorite;
     final previous = _favorite;
     setState(() => _favorite = newValue);
+    final uid = context.read<AuthProvider>().user!.uid;
+    final libraryService = context.read<LibraryService>();
     final item = await _ensureAdded();
     if (item == null) {
       if (mounted) setState(() => _favorite = previous);
       return;
     }
-    final uid = context.read<AuthProvider>().user!.uid;
     try {
-      await context.read<LibraryService>().toggleFavorite(uid: uid, docId: item.docId, favorite: newValue);
+      await libraryService.toggleFavorite(uid: uid, docId: item.docId, favorite: newValue);
       if (mounted) setState(() => _libraryItem = item.copyWith(favorite: newValue));
     } catch (_) {
       if (mounted) setState(() => _favorite = previous);
@@ -143,10 +152,14 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   Future<void> _updatePages(int pagesRead) async {
     final pageCount = _details?.pageCount;
     final clamped = pageCount != null ? pagesRead.clamp(0, pageCount) : pagesRead.clamp(0, 1 << 30);
-    final item = await _ensureAdded();
-    if (!mounted || item == null) return;
+    // Same fix as _toggleFavorite: capture these before the await so the
+    // write still goes through even if the screen's been popped by the
+    // time _ensureAdded() resolves.
     final uid = context.read<AuthProvider>().user!.uid;
-    await context.read<LibraryService>().updateBookProgress(
+    final libraryService = context.read<LibraryService>();
+    final item = await _ensureAdded();
+    if (item == null) return;
+    await libraryService.updateBookProgress(
       uid: uid,
       docId: item.docId,
       pagesRead: clamped,

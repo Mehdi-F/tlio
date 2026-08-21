@@ -17,9 +17,9 @@ import 'book_detail_screen.dart';
 import 'friend_comparison_screen.dart';
 import 'manga_detail_screen.dart';
 
-/// TLIO is locked to exactly two people, so there's no friend list or
-/// add-by-email flow to build — this screen goes straight to whoever the
-/// other allowed user is (via LinkService.findOtherUser).
+/// TLIO is locked to exactly two people, so there's no add-by-email flow
+/// to build — this list has at most one row: whoever the other allowed
+/// user is (via LinkService.findOtherUser).
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
 
@@ -30,6 +30,8 @@ class FriendsScreen extends StatefulWidget {
 class _FriendsScreenState extends State<FriendsScreen> {
   bool _loading = true;
   Map<String, dynamic>? _friend;
+  int _pagesRead = 0;
+  int _volumesRead = 0;
 
   @override
   void initState() {
@@ -41,9 +43,20 @@ class _FriendsScreenState extends State<FriendsScreen> {
     setState(() => _loading = true);
     final myEmail = context.read<AuthProvider>().user?.email ?? '';
     final friend = await context.read<LinkService>().findOtherUser(myEmail);
+    var pagesRead = 0;
+    var volumesRead = 0;
+    if (friend != null) {
+      try {
+        final items = await context.read<LibraryService>().watchLibrary(friend['uid'] as String).first;
+        pagesRead = items.where((i) => i.type != 'manga').fold<int>(0, (s, i) => s + (i.pagesRead ?? 0));
+        volumesRead = items.where((i) => i.type == 'manga').fold<int>(0, (s, i) => s + (i.volumesRead ?? 0));
+      } catch (_) {}
+    }
     if (mounted) {
       setState(() {
         _friend = friend;
+        _pagesRead = pagesRead;
+        _volumesRead = volumesRead;
         _loading = false;
       });
     }
@@ -77,11 +90,78 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       ),
                     ],
                   )
-                : _FriendProfile(
-                    friendUid: _friend!['uid'] as String,
-                    displayName: _friend!['displayName'] as String? ?? _friend!['email'] as String? ?? '',
-                    photoUrl: _friend!['photoUrl'] as String?,
+                : ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    children: [_FriendCard(friend: _friend!, pagesRead: _pagesRead, volumesRead: _volumesRead)],
                   ),
+      ),
+    );
+  }
+}
+
+class _FriendCard extends StatelessWidget {
+  final Map<String, dynamic> friend;
+  final int pagesRead;
+  final int volumesRead;
+
+  const _FriendCard({required this.friend, required this.pagesRead, required this.volumesRead});
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = friend['displayName'] as String? ?? friend['email'] as String? ?? '';
+    final photoUrl = friend['photoUrl'] as String?;
+    final uid = friend['uid'] as String;
+    return Container(
+      decoration: BoxDecoration(
+        color: context.colorSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.colorSurfaceVariant, width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: context.colorSurfaceVariant,
+                  backgroundImage: photoUrl != null ? CachedNetworkImageProvider(photoUrl) : null,
+                  child: photoUrl == null ? Icon(Icons.person, color: context.colorTextSecondary, size: 28) : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text('$pagesRead ${context.tr('profile.pagesRead')}', style: TextStyle(color: context.colorTextSecondary, fontSize: 12)),
+                          const SizedBox(width: 12),
+                          Text('$volumesRead ${context.tr('profile.volumesRead')}', style: TextStyle(color: context.colorTextSecondary, fontSize: 12)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonal(
+                onPressed: () => Navigator.of(context).push(appRoute(
+                  builder: (_) => FriendProfileScreen(friendUid: uid, displayName: displayName, photoUrl: photoUrl),
+                )),
+                child: Text(context.tr('friends.viewProfile'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -96,18 +176,18 @@ class _Resolved {
   _Resolved({required this.item, required this.title, required this.coverUrl, required this.recency});
 }
 
-class _FriendProfile extends StatefulWidget {
+class FriendProfileScreen extends StatefulWidget {
   final String friendUid;
   final String displayName;
   final String? photoUrl;
 
-  const _FriendProfile({required this.friendUid, required this.displayName, required this.photoUrl});
+  const FriendProfileScreen({super.key, required this.friendUid, required this.displayName, required this.photoUrl});
 
   @override
-  State<_FriendProfile> createState() => _FriendProfileState();
+  State<FriendProfileScreen> createState() => _FriendProfileScreenState();
 }
 
-class _FriendProfileState extends State<_FriendProfile> {
+class _FriendProfileScreenState extends State<FriendProfileScreen> {
   bool _loading = true;
   bool _error = false;
   List<_Resolved> _resolved = [];
@@ -160,6 +240,13 @@ class _FriendProfileState extends State<_FriendProfile> {
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.displayName)),
+      body: RefreshIndicator(onRefresh: _load, child: _buildBody(context)),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
     if (_loading) return const MediaListSkeleton();
     if (_error) {
       return ListView(

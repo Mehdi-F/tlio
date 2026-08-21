@@ -153,6 +153,7 @@ class AppStrings {
       'friends.title': 'Amis',
       'friends.placeholder': 'L\'autre personne n\'a pas encore ouvert l\'application.',
       'friends.emptyLibrary': 'Bibliothèque vide pour le moment.',
+      'friends.viewProfile': 'Voir le profil',
 
       // Compare
       'compare.title': 'Comparaison',
@@ -277,6 +278,7 @@ class AppStrings {
       'friends.title': 'Friends',
       'friends.placeholder': 'The other person hasn\'t opened the app yet.',
       'friends.emptyLibrary': 'Nothing in their library yet.',
+      'friends.viewProfile': 'View profile',
 
       'compare.title': 'Comparison',
       'compare.cardTitle': 'Compare our libraries',

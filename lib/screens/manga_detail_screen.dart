@@ -100,17 +100,24 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     // _toggleFavorite: awaiting _ensureAdded() first would make favoriting
     // a preview manga wait on a full addToLibrary round-trip before the
     // heart visually changed at all.
+    //
+    // uid/libraryService are captured before the await on purpose: reading
+    // them via context *after* an await is what broke this — if the user
+    // navigates away while _ensureAdded() is still in flight, the widget
+    // is disposed by the time the await resolves, context.read throws,
+    // and the actual Firestore write never happens.
     final newValue = !_favorite;
     final previous = _favorite;
     setState(() => _favorite = newValue);
+    final uid = context.read<AuthProvider>().user!.uid;
+    final libraryService = context.read<LibraryService>();
     final item = await _ensureAdded();
     if (item == null) {
       if (mounted) setState(() => _favorite = previous);
       return;
     }
-    final uid = context.read<AuthProvider>().user!.uid;
     try {
-      await context.read<LibraryService>().toggleFavorite(uid: uid, docId: item.docId, favorite: newValue);
+      await libraryService.toggleFavorite(uid: uid, docId: item.docId, favorite: newValue);
       if (mounted) setState(() => _libraryItem = item.copyWith(favorite: newValue));
     } catch (_) {
       if (mounted) setState(() => _favorite = previous);
@@ -118,10 +125,13 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   }
 
   Future<void> _toggleVolume(int volume, bool read) async {
-    final item = await _ensureAdded();
-    if (!mounted || item == null) return;
+    // Same fix as _toggleFavorite: capture these before the await so the
+    // write still goes through even if the screen's been popped by the
+    // time _ensureAdded() resolves.
     final uid = context.read<AuthProvider>().user!.uid;
     final library = context.read<LibraryService>();
+    final item = await _ensureAdded();
+    if (item == null) return;
     await library.markVolumeRead(uid: uid, docId: item.docId, volume: volume, read: read);
     final newReadAt = Map<String, DateTime>.from(item.volumeReadAt);
     if (read) {
