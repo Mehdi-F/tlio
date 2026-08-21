@@ -104208,11 +104208,11 @@ for(;;)switch(s){case 0:o=t.z,n=p.a,m=0
 case 3:s=5
 return A.n(n.Xs("GET",a,null).EX(B.ku),$async$rh)
 case 5:l=c
-if(l.b<500||m>=2){q=l
+if(l.b<500||m>=4){q=l
 s=1
 break}++m
 s=6
-return A.n(A.QC(new A.aU(1000*(300*m)),o),$async$rh)
+return A.n(A.QC(new A.aU(1000*(400*m)),o),$async$rh)
 case 6:s=3
 break
 case 4:case 1:return A.u(q,r)}})
