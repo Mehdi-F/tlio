@@ -74,14 +74,18 @@ class BookService {
   }
 
   /// Google Books intermittently returns 503 on an otherwise-valid request
-  /// (reproducible with plain curl, no browser/CORS involved) — a couple of
-  /// short retries clears most of them instead of surfacing a hard error
-  /// for what's really just backend flakiness.
-  Future<http.Response> _getWithRetry(Uri uri, {int retries = 2}) async {
+  /// — reproducible with plain curl outside the browser, and confirmed via
+  /// Cloud Console to not be a quota issue (queries/day sat under 10% used
+  /// during a run of failures). It's backend flakiness on Google's side,
+  /// sometimes in bursts of several failures in a row, so this retries
+  /// several times with a growing delay rather than giving up after one
+  /// or two — cheap insurance against a service that's known to be
+  /// under-maintained.
+  Future<http.Response> _getWithRetry(Uri uri, {int retries = 4}) async {
     for (var attempt = 0; ; attempt++) {
       final response = await _client.get(uri).timeout(_requestTimeout);
       if (response.statusCode < 500 || attempt >= retries) return response;
-      await Future.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+      await Future.delayed(Duration(milliseconds: 400 * (attempt + 1)));
     }
   }
 
