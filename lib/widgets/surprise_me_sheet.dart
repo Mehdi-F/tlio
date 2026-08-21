@@ -54,24 +54,21 @@ class _SurpriseSheetState extends State<_SurpriseSheet> {
     _buildPool();
   }
 
-  /// item.status never actually transitions to "completed" anywhere in the
-  /// app, so the pool has to be built from each title's real progress
-  /// (pagesRead/volumesRead vs the resolved total) instead of trusting that
-  /// field — otherwise already-finished titles keep showing up here.
+  /// Surprise-me is meant to surface something untouched, not just
+  /// something unfinished — so it excludes anything with any read progress
+  /// at all, not only titles that are already fully finished.
   Future<void> _buildPool() async {
     final candidates = <_Candidate>[];
     await forEachBounded(widget.items, 8, (item) async {
+      final started = item.type == 'manga' ? (item.volumesRead ?? 0) > 0 : (item.pagesRead ?? 0) > 0;
+      if (started) return;
       try {
         if (item.type == 'manga') {
           final details = await widget.manga.getDetails(int.parse(item.sourceId));
-          final total = item.volumesTotal ?? details.volumes;
-          final finished = total != null && (item.volumesRead ?? 0) >= total;
-          if (!finished) candidates.add(_Candidate(item: item, title: details.title, coverUrl: details.coverUrl));
+          candidates.add(_Candidate(item: item, title: details.title, coverUrl: details.coverUrl));
         } else {
           final details = await widget.book.getDetails(item.sourceId);
-          final total = item.pagesTotal ?? details.pageCount;
-          final finished = total != null && (item.pagesRead ?? 0) >= total;
-          if (!finished) candidates.add(_Candidate(item: item, title: details.title, coverUrl: details.thumbnailUrl));
+          candidates.add(_Candidate(item: item, title: details.title, coverUrl: details.thumbnailUrl));
         }
       } catch (_) {}
     });
