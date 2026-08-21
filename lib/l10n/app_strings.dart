@@ -45,6 +45,14 @@ class AppStrings {
       'common.loadMore': 'Charger plus',
       'common.showMore': 'Voir plus',
       'common.showLess': 'Voir moins',
+      'common.sortBy': 'Trier par',
+      'common.reset': 'Réinitialiser',
+      'common.apply': 'Appliquer',
+
+      // Sort
+      'sort.lastActivity': 'Activité récente',
+      'sort.lastAdded': 'Date d\'ajout',
+      'sort.alphabetical': 'Alphabétique',
 
       // Login
       'login.tagline': 'Ta bibliothèque, ouverte',
@@ -136,6 +144,13 @@ class AppStrings {
       'common.loadMore': 'Load more',
       'common.showMore': 'Show more',
       'common.showLess': 'Show less',
+      'common.sortBy': 'Sort by',
+      'common.reset': 'Reset',
+      'common.apply': 'Apply',
+
+      'sort.lastActivity': 'Recent activity',
+      'sort.lastAdded': 'Date added',
+      'sort.alphabetical': 'Alphabetical',
 
       'login.tagline': 'Your library, open',
       'login.signInWithGoogle': 'Sign in with Google',

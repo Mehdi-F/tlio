@@ -9,6 +9,7 @@ import '../services/manga_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/concurrency.dart';
 import '../widgets/app_page_route.dart';
+import '../widgets/library_sort_sheet.dart';
 import '../widgets/media_tile.dart';
 import '../widgets/skeletons.dart';
 import 'manga_detail_screen.dart';
@@ -50,6 +51,19 @@ class _MangaScreenState extends State<MangaScreen> {
   bool _historyExpanded = false;
   int _historyVisibleCount = 0;
   bool _historyLoadingMore = false;
+  LibrarySort _sort = LibrarySort.lastActivity;
+
+  void _sortItems(List<LibraryItem> items) {
+    switch (_sort) {
+      case LibrarySort.lastActivity:
+        items.sort((a, b) => (b.lastActivityAt ?? b.addedAt).compareTo(a.lastActivityAt ?? a.addedAt));
+      case LibrarySort.lastAdded:
+        items.sort((a, b) => b.addedAt.compareTo(a.addedAt));
+      case LibrarySort.alphabetical:
+        items.sort((a, b) => compareLibraryByTitle(
+            _resolved[a.docId]?.title ?? a.sourceId, _resolved[b.docId]?.title ?? b.sourceId));
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -137,14 +151,27 @@ class _MangaScreenState extends State<MangaScreen> {
     final hasAnyHistory = skeleton.isNotEmpty;
     final hasMoreHistory = _historyVisibleCount < skeleton.length;
 
-    return ListView(
-      padding: const EdgeInsets.only(top: 8, bottom: 16),
+    return Stack(
       children: [
-        if (hasAnyHistory) _historyToggleRow(context),
-        if (_historyExpanded && _historyLoadingMore) _historyLoaderRow(),
-        if (_historyExpanded && !_historyLoadingMore && hasMoreHistory) _historyLoadMoreRow(context),
-        if (_historyExpanded) ..._historyEntryWidgets(context, skeleton.take(_historyVisibleCount).toList()),
-        ..._buildLibraryRows(context),
+        ListView(
+          padding: const EdgeInsets.only(top: 8, bottom: 80),
+          children: [
+            if (hasAnyHistory) _historyToggleRow(context),
+            if (_historyExpanded && _historyLoadingMore) _historyLoaderRow(),
+            if (_historyExpanded && !_historyLoadingMore && hasMoreHistory) _historyLoadMoreRow(context),
+            if (_historyExpanded) ..._historyEntryWidgets(context, skeleton.take(_historyVisibleCount).toList()),
+            ..._buildLibraryRows(context),
+          ],
+        ),
+        if (_lastItems.isNotEmpty)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: LibrarySortButton(onTap: () async {
+              final result = await showLibrarySortSheet(context, _sort);
+              if (result != null) setState(() => _sort = result);
+            }),
+          ),
       ],
     );
   }
@@ -160,8 +187,8 @@ class _MangaScreenState extends State<MangaScreen> {
     }
     final toRead = _lastItems
         .where((i) => !_isFinished(i, _resolved[i.docId]?.volumes))
-        .toList()
-      ..sort((a, b) => (b.lastActivityAt ?? b.addedAt).compareTo(a.lastActivityAt ?? a.addedAt));
+        .toList();
+    _sortItems(toRead);
     if (toRead.isEmpty) {
       return [
         Padding(

@@ -9,6 +9,7 @@ import '../services/book_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/concurrency.dart';
 import '../widgets/app_page_route.dart';
+import '../widgets/library_sort_sheet.dart';
 import '../widgets/media_tile.dart';
 import '../widgets/skeletons.dart';
 import 'book_detail_screen.dart';
@@ -41,6 +42,7 @@ class _BooksScreenState extends State<BooksScreen>
 
   late final TabController _tabController;
   _Filter _filter = _Filter.all;
+  LibrarySort _sort = LibrarySort.lastActivity;
   final Map<String, BookDetails> _resolved = {};
   final Set<String> _settled = {};
   bool _showContent = false;
@@ -110,10 +112,27 @@ class _BooksScreenState extends State<BooksScreen>
     }
   }
 
-  List<LibraryItem> get _finishedItems =>
-      _filteredItems.where((i) => _isFinished(i, _resolved[i.docId]?.pageCount)).toList()
-        ..sort((a, b) =>
-            (b.lastActivityAt ?? b.addedAt).compareTo(a.lastActivityAt ?? a.addedAt));
+  int _compareByTitle(LibraryItem a, LibraryItem b) => compareLibraryByTitle(
+        _resolved[a.docId]?.title ?? a.sourceId,
+        _resolved[b.docId]?.title ?? b.sourceId,
+      );
+
+  void _sortItems(List<LibraryItem> items) {
+    switch (_sort) {
+      case LibrarySort.lastActivity:
+        items.sort((a, b) => (b.lastActivityAt ?? b.addedAt).compareTo(a.lastActivityAt ?? a.addedAt));
+      case LibrarySort.lastAdded:
+        items.sort((a, b) => b.addedAt.compareTo(a.addedAt));
+      case LibrarySort.alphabetical:
+        items.sort(_compareByTitle);
+    }
+  }
+
+  List<LibraryItem> get _finishedItems {
+    final items = _filteredItems.where((i) => _isFinished(i, _resolved[i.docId]?.pageCount)).toList();
+    _sortItems(items);
+    return items;
+  }
 
   Future<void> _loadMoreHistory() async {
     if (_historyLoadingMore) return;
@@ -172,11 +191,10 @@ class _BooksScreenState extends State<BooksScreen>
 
     final inProgress = items
         .where((i) => _isStarted(i) && !_isFinished(i, _resolved[i.docId]?.pageCount))
-        .toList()
-      ..sort((a, b) =>
-          (b.lastActivityAt ?? b.addedAt).compareTo(a.lastActivityAt ?? a.addedAt));
-    final toRead = items.where((i) => !_isStarted(i)).toList()
-      ..sort((a, b) => b.addedAt.compareTo(a.addedAt));
+        .toList();
+    _sortItems(inProgress);
+    final toRead = items.where((i) => !_isStarted(i)).toList();
+    _sortItems(toRead);
     final finished = _finishedItems;
     final hasAnyFinished = finished.isNotEmpty;
     final hasMoreHistory = _historyVisibleCount < finished.length;
@@ -186,15 +204,27 @@ class _BooksScreenState extends State<BooksScreen>
       return _EmptyState(icon: Icons.menu_book_outlined, message: context.tr('books.allCaughtUp'));
     }
 
-    return ListView(
-      padding: const EdgeInsets.only(top: 8, bottom: 16),
+    return Stack(
       children: [
-        if (hasAnyFinished) _historyToggleRow(context),
-        if (_historyExpanded && _historyLoadingMore) _historyLoaderRow(),
-        if (_historyExpanded && !_historyLoadingMore && hasMoreHistory) _historyLoadMoreRow(context),
-        if (history.isNotEmpty) ..._itemTiles(context, history, dimmed: true),
-        if (inProgress.isNotEmpty) ..._section(context, context.tr('books.inProgress'), inProgress),
-        if (toRead.isNotEmpty) ..._section(context, context.tr('books.toRead'), toRead),
+        ListView(
+          padding: const EdgeInsets.only(top: 8, bottom: 80),
+          children: [
+            if (hasAnyFinished) _historyToggleRow(context),
+            if (_historyExpanded && _historyLoadingMore) _historyLoaderRow(),
+            if (_historyExpanded && !_historyLoadingMore && hasMoreHistory) _historyLoadMoreRow(context),
+            if (history.isNotEmpty) ..._itemTiles(context, history, dimmed: true),
+            if (inProgress.isNotEmpty) ..._section(context, context.tr('books.inProgress'), inProgress),
+            if (toRead.isNotEmpty) ..._section(context, context.tr('books.toRead'), toRead),
+          ],
+        ),
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: LibrarySortButton(onTap: () async {
+            final result = await showLibrarySortSheet(context, _sort);
+            if (result != null) setState(() => _sort = result);
+          }),
+        ),
       ],
     );
   }
