@@ -1,33 +1,29 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/anilist_config.dart';
 import '../config/constants.dart';
 import '../exceptions/app_exception.dart';
 import '../models/manga_models.dart';
+import 'response_cache.dart';
 
 class MangaService {
   final http.Client _client;
-  SharedPreferences? _prefs;
+  final _diskCache = ResponseCache(
+    name: 'anilist_cache',
+    ttl: AppConstants.cacheTtl,
+    legacyPrefsPrefix: 'anilist_cache:',
+  );
 
-  MangaService({http.Client? client}) : _client = client ?? http.Client() {
-    unawaited(SharedPreferences.getInstance().then((p) => _prefs = p));
-  }
+  MangaService({http.Client? client}) : _client = client ?? http.Client();
 
-  static const _prefsKeyPrefix = 'anilist_cache:';
-  static const _prefsTtl = AppConstants.cacheTtl;
   static const _requestTimeout = AppConstants.requestTimeout;
 
   final Map<String, Future<String>> _memoryCache = {};
 
   void clearCache() {
     _memoryCache.clear();
-    final prefs = _prefs;
-    if (prefs == null) return;
-    for (final key in prefs.getKeys()) {
-      if (key.startsWith(_prefsKeyPrefix)) unawaited(prefs.remove(key));
-    }
+    unawaited(_diskCache.clear());
   }
 
   Future<String> _cachedQuery(String cacheKey, String query, Map<String, dynamic> variables, String errorLabel) {
@@ -47,16 +43,8 @@ class MangaService {
     Map<String, dynamic> variables,
     String errorLabel,
   ) async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    _prefs = prefs;
-
-    final prefsKey = '$_prefsKeyPrefix$cacheKey';
-    final cachedAt = prefs.getInt('$prefsKey:at');
-    final cachedBody = prefs.getString(prefsKey);
-    if (cachedAt != null && cachedBody != null) {
-      final age = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(cachedAt));
-      if (age < _prefsTtl) return cachedBody;
-    }
+    final fresh = await _diskCache.readFresh(cacheKey);
+    if (fresh != null) return fresh;
 
     try {
       final response = await _client
@@ -69,11 +57,12 @@ class MangaService {
       if (response.statusCode != 200) {
         throw AniListException('$errorLabel failed', statusCode: response.statusCode);
       }
-      unawaited(prefs.setString(prefsKey, response.body));
-      unawaited(prefs.setInt('$prefsKey:at', DateTime.now().millisecondsSinceEpoch));
+      unawaited(_diskCache.write(cacheKey, response.body));
       return response.body;
     } catch (e) {
-      if (cachedBody != null) return cachedBody;
+      // A stale copy still opens the title, which beats an outright failure.
+      final stale = await _diskCache.readStale(cacheKey);
+      if (stale != null) return stale;
       if (e is AniListException) rethrow;
       throw AniListException('$errorLabel failed: $e');
     }

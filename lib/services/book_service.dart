@@ -1,33 +1,29 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/google_books_config.dart';
 import '../config/constants.dart';
 import '../exceptions/app_exception.dart';
 import '../models/book_models.dart';
+import 'response_cache.dart';
 
 class BookService {
   final http.Client _client;
-  SharedPreferences? _prefs;
+  final _diskCache = ResponseCache(
+    name: 'googlebooks_cache',
+    ttl: AppConstants.cacheTtl,
+    legacyPrefsPrefix: 'googlebooks_cache:',
+  );
 
-  BookService({http.Client? client}) : _client = client ?? http.Client() {
-    unawaited(SharedPreferences.getInstance().then((p) => _prefs = p));
-  }
+  BookService({http.Client? client}) : _client = client ?? http.Client();
 
-  static const _prefsKeyPrefix = 'googlebooks_cache:';
-  static const _prefsTtl = AppConstants.cacheTtl;
   static const _requestTimeout = AppConstants.requestTimeout;
 
   final Map<String, Future<String>> _memoryCache = {};
 
   void clearCache() {
     _memoryCache.clear();
-    final prefs = _prefs;
-    if (prefs == null) return;
-    for (final key in prefs.getKeys()) {
-      if (key.startsWith(_prefsKeyPrefix)) unawaited(prefs.remove(key));
-    }
+    unawaited(_diskCache.clear());
   }
 
   Future<String> _cachedBody(String key, Uri uri, String errorLabel) {
@@ -42,27 +38,20 @@ class BookService {
   }
 
   Future<String> _fetchBody(String key, Uri uri, String errorLabel) async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    _prefs = prefs;
-
-    final prefsKey = '$_prefsKeyPrefix$key';
-    final cachedAt = prefs.getInt('$prefsKey:at');
-    final cachedBody = prefs.getString(prefsKey);
-    if (cachedAt != null && cachedBody != null) {
-      final age = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(cachedAt));
-      if (age < _prefsTtl) return cachedBody;
-    }
+    final fresh = await _diskCache.readFresh(key);
+    if (fresh != null) return fresh;
 
     try {
       final response = await _getWithRetry(uri);
       if (response.statusCode != 200) {
         throw GoogleBooksException('$errorLabel failed', statusCode: response.statusCode);
       }
-      unawaited(prefs.setString(prefsKey, response.body));
-      unawaited(prefs.setInt('$prefsKey:at', DateTime.now().millisecondsSinceEpoch));
+      unawaited(_diskCache.write(key, response.body));
       return response.body;
     } catch (e) {
-      if (cachedBody != null) return cachedBody;
+      // A stale copy still opens the title, which beats an outright failure.
+      final stale = await _diskCache.readStale(key);
+      if (stale != null) return stale;
       if (e is GoogleBooksException) rethrow;
       throw GoogleBooksException('$errorLabel failed: $e');
     }
