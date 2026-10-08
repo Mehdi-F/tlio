@@ -21,6 +21,29 @@ class LinkService {
     }, SetOptions(merge: true));
   }
 
+  /// Yearly reading goals, keyed by year (2026 → 24). Kept on the profile
+  /// doc rather than in local prefs so the goal follows the user between the
+  /// APK and the web build. Years without a goal are simply absent.
+  Stream<Map<int, int>> watchReadingGoals(String uid) {
+    return _userDoc(uid).snapshots().map((snapshot) {
+      final raw = snapshot.data()?['readingGoals'] as Map<String, dynamic>? ?? const {};
+      final goals = <int, int>{};
+      for (final entry in raw.entries) {
+        final year = int.tryParse(entry.key);
+        final value = entry.value;
+        if (year != null && value is num) goals[year] = value.toInt();
+      }
+      return goals;
+    });
+  }
+
+  /// Sets [year]'s goal, or clears it when [goal] is null.
+  Future<void> setReadingGoal({required String uid, required int year, int? goal}) {
+    return _userDoc(uid).set({
+      'readingGoals': {'$year': goal ?? FieldValue.delete()},
+    }, SetOptions(merge: true));
+  }
+
   /// Returns the other allowed user's {uid, displayName, email, photoUrl},
   /// or null if they haven't opened the app yet.
   Future<Map<String, dynamic>?> findOtherUser(String myEmail) async {

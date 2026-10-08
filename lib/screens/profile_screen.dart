@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/constants.dart';
 import '../l10n/localization_context.dart';
+import '../logic/reading_goal.dart';
 import '../models/library_item.dart';
 import '../providers/auth_provider.dart';
 import '../providers/library_provider.dart';
 import '../services/book_service.dart';
+import '../services/link_service.dart';
 import '../services/manga_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/concurrency.dart';
@@ -85,10 +87,14 @@ class _ProfileBodyState extends State<_ProfileBody> {
   bool _showContent = false;
   List<LibraryItem> _lastItems = const [];
 
+  Stream<Map<int, int>>? _goals;
+
   @override
   void initState() {
     super.initState();
     _resolveAll(widget.items);
+    final uid = widget.user?.uid;
+    if (uid != null) _goals = context.read<LinkService>().watchReadingGoals(uid);
   }
 
   @override
@@ -163,6 +169,46 @@ class _ProfileBodyState extends State<_ProfileBody> {
     _flushTimer?.cancel();
     _flushTimer = null;
     setState(() => _showContent = true);
+  }
+
+  Future<void> _editGoal(BuildContext context, int year, int? current) async {
+    final uid = widget.user?.uid;
+    if (uid == null) return;
+    // Captured before the dialog's await, like every write in this app.
+    final links = context.read<LinkService>();
+    final controller = TextEditingController(text: current?.toString() ?? '');
+    // `null` = cancelled, `0` = remove, anything else = the new goal.
+    final result = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.tr('goal.title').replaceAll('{year}', '$year')),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(helperText: context.tr('goal.dialogHint')),
+          onSubmitted: (v) => Navigator.of(dialogContext).pop(int.tryParse(v.trim())),
+        ),
+        actions: [
+          if (current != null)
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(0),
+              child: Text(context.tr('goal.remove')),
+            ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(context.tr('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(int.tryParse(controller.text.trim())),
+            child: Text(context.tr('common.save')),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null || result < 0) return;
+    await links.setReadingGoal(uid: uid, year: year, goal: result == 0 ? null : result);
   }
 
   Future<void> _editDisplayName(BuildContext context, String currentName) async {
@@ -272,6 +318,31 @@ class _ProfileBodyState extends State<_ProfileBody> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: _SurpriseMeCard(onTap: () => showSurpriseMeSheet(context)),
           ),
+          if (_goals != null)
+            StreamBuilder<Map<int, int>>(
+              stream: _goals,
+              builder: (context, snapshot) {
+                // Nothing until the doc arrives, so a set goal never flashes
+                // the "set a goal" prompt first.
+                if (!snapshot.hasData) return const SizedBox.shrink();
+                final year = DateTime.now().year;
+                final goal = snapshot.data![year];
+                final done = readingGoalProgress(
+                  items: _lastItems,
+                  isFinished: (i) => _resolved[i.docId]?.withItem(i).isFinished ?? false,
+                  year: year,
+                );
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: _ReadingGoalCard(
+                    year: year,
+                    goal: goal,
+                    done: done,
+                    onTap: () => _editGoal(context, year, goal),
+                  ),
+                );
+              },
+            ),
           if (isRecapSeason()) ...[
             const SizedBox(height: 8),
             Padding(
@@ -664,6 +735,107 @@ class _CarouselSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
       ],
+    );
+  }
+}
+
+class _ReadingGoalCard extends StatelessWidget {
+  final int year;
+  final int? goal;
+  final int done;
+  final VoidCallback onTap;
+
+  const _ReadingGoalCard({required this.year, required this.goal, required this.done, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final goal = this.goal;
+    final secondary = TextStyle(color: context.colorTextSecondary, fontSize: 12);
+
+    if (goal == null) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(color: context.colorSurfaceVariant, borderRadius: BorderRadius.circular(12)),
+          child: Row(
+            children: [
+              const Icon(Icons.flag_outlined, color: AppColors.accent, size: 28),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      context.tr('goal.ctaTitle').replaceAll('{year}', '$year'),
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                    ),
+                    Text(context.tr('goal.ctaSubtitle'), style: secondary),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: context.colorTextSecondary),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final reached = done >= goal;
+    final String status;
+    if (reached) {
+      status = context.tr('goal.reached');
+    } else {
+      final pace = readingGoalPace(done: done, goal: goal, today: DateTime.now());
+      status = pace > 0
+          ? context.tr('goal.ahead').replaceAll('{n}', '$pace')
+          : pace < 0
+              ? context.tr('goal.behind').replaceAll('{n}', '${-pace}')
+              : context.tr('goal.onPace');
+    }
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(color: context.colorSurfaceVariant, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(reached ? Icons.emoji_events_outlined : Icons.flag_outlined, color: AppColors.accent, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    context.tr('goal.title').replaceAll('{year}', '$year'),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
+                ),
+                Text(
+                  context.tr('goal.progress').replaceAll('{done}', '$done').replaceAll('{goal}', '$goal'),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: (done / goal).clamp(0.0, 1.0),
+                minHeight: 8,
+                color: AppColors.accent,
+                backgroundColor: context.colorBackground,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(status, style: secondary),
+          ],
+        ),
+      ),
     );
   }
 }

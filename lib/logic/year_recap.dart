@@ -5,6 +5,8 @@ import '../services/manga_service.dart';
 class YearRecap {
   final int year;
   final int titlesFinished;
+  /// Books and BD finished — [titlesFinished] minus completed manga series.
+  final int booksFinished;
   final int mangaVolumesRead;
   final int pagesRead;
   final int itemsAdded;
@@ -12,10 +14,15 @@ class YearRecap {
   YearRecap({
     required this.year,
     required this.titlesFinished,
+    required this.booksFinished,
     required this.mangaVolumesRead,
     required this.pagesRead,
     required this.itemsAdded,
   });
+
+  /// Progress toward the yearly reading goal, by the same rule as
+  /// [readingGoalProgress]: books/BD finished plus manga volumes read.
+  int get goalProgress => booksFinished + mangaVolumesRead;
 
   bool get isEmpty => titlesFinished == 0 && mangaVolumesRead == 0 && pagesRead == 0 && itemsAdded == 0;
 }
@@ -32,6 +39,7 @@ Future<YearRecap> computeYearRecap({
   required int year,
 }) async {
   var titlesFinished = 0;
+  var booksFinished = 0;
   var pagesRead = 0;
   var mangaVolumesRead = 0;
   final itemsAdded = items.where((i) => i.addedAt.year == year).length;
@@ -50,6 +58,7 @@ Future<YearRecap> computeYearRecap({
         final total = item.pagesTotal ?? (await bookService.getDetails(item.sourceId)).pageCount;
         if (total != null && (item.pagesRead ?? 0) >= total) {
           titlesFinished++;
+          booksFinished++;
           pagesRead += item.pagesRead ?? 0;
         }
       } catch (_) {}
@@ -59,6 +68,7 @@ Future<YearRecap> computeYearRecap({
   return YearRecap(
     year: year,
     titlesFinished: titlesFinished,
+    booksFinished: booksFinished,
     mangaVolumesRead: mangaVolumesRead,
     pagesRead: pagesRead,
     itemsAdded: itemsAdded,

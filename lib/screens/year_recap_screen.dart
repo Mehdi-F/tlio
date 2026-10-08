@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/localization_context.dart';
 import '../logic/year_recap.dart';
+import '../providers/auth_provider.dart';
 import '../providers/library_provider.dart';
 import '../services/book_service.dart';
+import '../services/link_service.dart';
 import '../services/manga_service.dart';
 import '../theme/app_theme.dart';
 
@@ -30,6 +32,7 @@ class YearRecapScreen extends StatefulWidget {
 
 class _YearRecapScreenState extends State<YearRecapScreen> {
   YearRecap? _recap;
+  int? _goal;
   bool _error = false;
   final _controller = PageController();
   int _page = 0;
@@ -44,9 +47,22 @@ class _YearRecapScreenState extends State<YearRecapScreen> {
     final items = context.read<LibraryProvider>().items;
     final book = context.read<BookService>();
     final manga = context.read<MangaService>();
+    final uid = context.read<AuthProvider>().user?.uid;
+    final links = context.read<LinkService>();
+    // The goal is a nice-to-have slide: if it can't be read, the recap
+    // still plays without it rather than failing as a whole.
+    final goalFuture = uid == null
+        ? Future<int?>.value()
+        : links.watchReadingGoals(uid).first.then<int?>((g) => g[widget.year]).catchError((Object _) => null);
     try {
       final recap = await computeYearRecap(items: items, bookService: book, mangaService: manga, year: widget.year);
-      if (mounted) setState(() => _recap = recap);
+      final goal = await goalFuture;
+      if (mounted) {
+        setState(() {
+          _recap = recap;
+          _goal = goal;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _error = true);
     }
@@ -67,6 +83,17 @@ class _YearRecapScreenState extends State<YearRecapScreen> {
     }
     if (recap.itemsAdded > 0) {
       pages.add(_RecapPage(title: '${recap.itemsAdded}', value: '', subtitle: context.tr('recap.itemsAdded')));
+    }
+    final goal = _goal;
+    if (goal != null) {
+      final reached = recap.goalProgress >= goal;
+      pages.add(_RecapPage(
+        title: '${recap.goalProgress} / $goal',
+        value: '',
+        subtitle: reached
+            ? context.tr('goal.reached')
+            : context.tr('recap.goalOf').replaceAll('{year}', '${recap.year}'),
+      ));
     }
     pages.add(_RecapPage(title: context.tr('recap.outro'), value: '', subtitle: ''));
     return pages;
