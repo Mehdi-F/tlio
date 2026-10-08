@@ -360,6 +360,35 @@ class _CategoryTile extends StatelessWidget {
   }
 }
 
+/// Hides titles already in the library from a discovery row, recomputed on
+/// every build so it can't go stale. Titles added from the row while it's on
+/// screen stay put, so the + badge can flip to a check instead of the cover
+/// vanishing under the finger that tapped it. Same approach as Showtime's
+/// Explorer rows.
+mixin _HidesOwnedTitles<W extends StatefulWidget> on State<W> {
+  final Set<String> _sticky = {};
+  Set<String>? _lastOwned;
+
+  List<R> withoutOwned<R>(
+    List<R> data,
+    String type,
+    String Function(R) idOf,
+    LibraryProvider library,
+  ) {
+    final owned = library.items.where((i) => i.type == type).map((i) => i.sourceId).toSet();
+    final previous = _lastOwned;
+    if (previous != null) {
+      // Anything owned since the last build was on screen a moment ago.
+      _sticky.addAll(owned.difference(previous));
+    }
+    _lastOwned = owned;
+    return data.where((r) {
+      final id = idOf(r);
+      return !owned.contains(id) || _sticky.contains(id);
+    }).toList();
+  }
+}
+
 class _BookCategoryRow extends StatefulWidget {
   final String title;
   final String subject;
@@ -377,17 +406,22 @@ class _BookCategoryRow extends StatefulWidget {
   State<_BookCategoryRow> createState() => _BookCategoryRowState();
 }
 
-class _BookCategoryRowState extends State<_BookCategoryRow> {
+class _BookCategoryRowState extends State<_BookCategoryRow> with _HidesOwnedTitles {
   late final Future<List<BookSearchResult>> _future =
       context.read<BookService>().discover(widget.subject);
 
   @override
   Widget build(BuildContext context) {
+    final library = context.watch<LibraryProvider>();
     return FutureBuilder<List<BookSearchResult>>(
       future: _future,
       builder: (context, snapshot) {
-        final items = snapshot.data;
-        if (items == null || items.isEmpty) return const SizedBox.shrink();
+        final data = snapshot.data;
+        // Before the library's first snapshot, an empty list isn't an empty
+        // library — don't render the row unfiltered against it.
+        if (data == null || !library.isLoaded) return const SizedBox.shrink();
+        final items = withoutOwned(data, 'book', (r) => r.id, library);
+        if (items.isEmpty) return const SizedBox.shrink();
         return _CategoryRowLayout(
           title: widget.title,
           count: items.length,
@@ -426,17 +460,20 @@ class _MangaCategoryRow extends StatefulWidget {
   State<_MangaCategoryRow> createState() => _MangaCategoryRowState();
 }
 
-class _MangaCategoryRowState extends State<_MangaCategoryRow> {
+class _MangaCategoryRowState extends State<_MangaCategoryRow> with _HidesOwnedTitles {
   late final Future<List<MangaSearchResult>> _future =
       context.read<MangaService>().discover(sort: widget.sort);
 
   @override
   Widget build(BuildContext context) {
+    final library = context.watch<LibraryProvider>();
     return FutureBuilder<List<MangaSearchResult>>(
       future: _future,
       builder: (context, snapshot) {
-        final items = snapshot.data;
-        if (items == null || items.isEmpty) return const SizedBox.shrink();
+        final data = snapshot.data;
+        if (data == null || !library.isLoaded) return const SizedBox.shrink();
+        final items = withoutOwned(data, 'manga', (r) => '${r.id}', library);
+        if (items.isEmpty) return const SizedBox.shrink();
         return _CategoryRowLayout(
           title: widget.title,
           count: items.length,

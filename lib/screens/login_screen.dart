@@ -11,11 +11,11 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: RadialGradient(
-            center: Alignment(0, -0.3),
+            center: const Alignment(0, -0.3),
             radius: 1.1,
-            colors: [AppColors.surface, AppColors.background],
+            colors: [context.colorSurface, context.colorBackground],
           ),
         ),
         child: Center(
@@ -30,7 +30,7 @@ class LoginScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: AppColors.accent, letterSpacing: 0.3),
               ),
               const SizedBox(height: 8),
-              Text(context.tr('login.tagline'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+              Text(context.tr('login.tagline'), style: TextStyle(color: context.colorTextSecondary, fontSize: 14)),
               const SizedBox(height: 40),
               FilledButton.icon(
                 onPressed: () => context.read<AuthProvider>().signInWithGoogle(),

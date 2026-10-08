@@ -12,6 +12,11 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // context.tr() reads the language without subscribing, and a pushed
+    // route isn't rebuilt when MaterialApp rebuilds — so without this the
+    // page kept its old-language strings and stale selection until you left
+    // and came back. Watching here re-runs build() on every settings change.
+    context.watch<SettingsProvider>();
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('settings.title'))),
       body: ListView(

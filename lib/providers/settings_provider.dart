@@ -27,9 +27,12 @@ class SettingsProvider extends ChangeNotifier {
 
   Future<void> setThemeMode(AppThemeMode mode) async {
     _themeMode = mode;
+    // Notify before persisting: the UI only needs the in-memory value, and
+    // waiting on SharedPreferences first is what made the change lag or,
+    // if anything threw on the way, never apply at all.
+    notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_themeModeKey, mode.index);
-    notifyListeners();
   }
 
   Future<void> setLanguage(String lang) async {
@@ -37,8 +40,8 @@ class SettingsProvider extends ChangeNotifier {
       throw ArgumentError('Unsupported language: $lang. Supported: ${AppConstants.supportedLanguages.join(", ")}');
     }
     _language = lang;
+    notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_languageKey, lang);
-    notifyListeners();
   }
 }

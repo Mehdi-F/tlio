@@ -36,14 +36,19 @@ class _FriendComparisonScreenState extends State<FriendComparisonScreen> {
       _loading = true;
       _error = false;
     });
+    // Same as FriendProfileScreen._load: read everything off context before
+    // the first await, so leaving mid-load can't throw on a disposed element.
+    final myItems = context.read<LibraryProvider>().items;
+    final library = context.read<LibraryService>();
+    final book = context.read<BookService>();
+    final manga = context.read<MangaService>();
     try {
-      final myItems = context.read<LibraryProvider>().items;
-      final friendItems = await context.read<LibraryService>().watchLibrary(widget.friendUid).first;
+      final friendItems = await library.watchLibrary(widget.friendUid).first;
       final result = await computeFriendComparison(
         myItems: myItems,
         friendItems: friendItems,
-        book: context.read<BookService>(),
-        manga: context.read<MangaService>(),
+        book: book,
+        manga: manga,
       );
       if (mounted) setState(() => _result = result);
     } catch (_) {

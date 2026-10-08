@@ -42,12 +42,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final myEmail = context.read<AuthProvider>().user?.email ?? '';
+    final library = context.read<LibraryService>();
     final friend = await context.read<LinkService>().findOtherUser(myEmail);
     var pagesRead = 0;
     var volumesRead = 0;
     if (friend != null) {
       try {
-        final items = await context.read<LibraryService>().watchLibrary(friend['uid'] as String).first;
+        final items = await library.watchLibrary(friend['uid'] as String).first;
         pagesRead = items.where((i) => i.type != 'manga').fold<int>(0, (s, i) => s + (i.pagesRead ?? 0));
         volumesRead = items.where((i) => i.type == 'manga').fold<int>(0, (s, i) => s + (i.volumesRead ?? 0));
       } catch (_) {}
@@ -203,10 +204,14 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
       _loading = true;
       _error = false;
     });
+    // Captured before the first await: if the screen is popped while the
+    // library is still loading, context.read would throw on a disposed
+    // element and surface as a bogus error state.
+    final library = context.read<LibraryService>();
+    final book = context.read<BookService>();
+    final manga = context.read<MangaService>();
     try {
-      final items = await context.read<LibraryService>().watchLibrary(widget.friendUid).first;
-      final book = context.read<BookService>();
-      final manga = context.read<MangaService>();
+      final items = await library.watchLibrary(widget.friendUid).first;
       final resolved = List<_Resolved?>.filled(items.length, null);
       await forEachBounded(List.generate(items.length, (i) => i), 8, (i) async {
         final item = items[i];
