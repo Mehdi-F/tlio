@@ -85,3 +85,56 @@ String? parseIsbn(String input) {
   }
   return null;
 }
+
+/// A title and author found for an ISBN by a catalogue other than Google
+/// Books, used to search Google Books for the matching volume.
+typedef IsbnRecord = ({String title, String author});
+
+/// Extracts title and author from a BnF SRU response in Dublin Core.
+///
+/// BnF records are written for librarians: the title carries the subtitle,
+/// volume number and statement of responsibility ("Pénis de table : sept
+/// mecs racontent tout sur leur vie sexuelle. [1] / texte et dessin, Cookie
+/// Kalkair") and the creator is inverted with dates and role ("Kalkair,
+/// Cookie (1983-....). Auteur du texte"). Both are reduced to what a Google
+/// Books search and an exact-title comparison need. Returns null when the
+/// response holds no record.
+IsbnRecord? parseBnfRecord(String xml) {
+  final rawTitle = RegExp(r'<dc:title>([\s\S]*?)</dc:title>').firstMatch(xml)?.group(1);
+  if (rawTitle == null) return null;
+  final title = cleanBnfTitle(_decodeXmlEntities(rawTitle));
+  if (title.isEmpty) return null;
+  final rawCreator = RegExp(r'<dc:creator>([\s\S]*?)</dc:creator>').firstMatch(xml)?.group(1);
+  final author = rawCreator == null ? '' : cleanBnfCreator(_decodeXmlEntities(rawCreator));
+  return (title: title, author: author);
+}
+
+/// "Pénis de table : sept mecs… [1] / texte et dessin, Cookie Kalkair"
+/// → "Pénis de table".
+String cleanBnfTitle(String raw) {
+  var t = raw;
+  final slash = t.indexOf(' / ');
+  if (slash >= 0) t = t.substring(0, slash);
+  final colon = t.indexOf(' : ');
+  if (colon >= 0) t = t.substring(0, colon);
+  t = t.replaceAll(RegExp(r'\[[^\]]*\]'), '');
+  return t.replaceAll(RegExp(r'[\s.,;:]+$'), '').trim();
+}
+
+/// "Kalkair, Cookie (1983-....). Auteur du texte" → "Cookie Kalkair".
+String cleanBnfCreator(String raw) {
+  var c = raw;
+  final paren = c.indexOf('(');
+  if (paren >= 0) c = c.substring(0, paren);
+  c = c.split('. ').first.trim().replaceAll(RegExp(r'[.,;]+$'), '');
+  final parts = c.split(', ');
+  return parts.length == 2 ? '${parts[1].trim()} ${parts[0].trim()}' : c.trim();
+}
+
+String _decodeXmlEntities(String s) => s
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&apos;', "'")
+    .replaceAll('&#39;', "'")
+    .replaceAll('&amp;', '&');

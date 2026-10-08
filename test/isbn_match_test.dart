@@ -76,4 +76,39 @@ void main() {
       expect(parseIsbn('1234567890123'), isNull);
     });
   });
+
+  group('BnF records', () {
+    // Trimmed from the real SRU response for 978-2-36846-939-2.
+    const xml = '''
+<srw:record><srw:recordData><oai_dc:dc>
+<dc:title>Pénis de table : sept mecs racontent tout sur leur vie sexuelle. [1] / texte et dessin, Cookie Kalkair</dc:title>
+<dc:creator>Kalkair, Cookie (1983-....). Auteur du texte</dc:creator>
+<dc:creator>Kalkair, Cookie (1983-....). Illustrateur</dc:creator>
+</oai_dc:dc></srw:recordData></srw:record>''';
+
+    test('reduces a librarian-style record to title and author', () {
+      final record = parseBnfRecord(xml);
+      expect(record?.title, 'Pénis de table');
+      expect(record?.author, 'Cookie Kalkair');
+    });
+
+    test('the cleaned title exact-matches the Google listing', () {
+      final results = [
+        _r('t2', 'Pénis de table Tome 2'),
+        _r('t1', 'Pénis de table'),
+      ];
+      final record = parseBnfRecord(xml)!;
+      expect(pickIsbnMatch(results, isbn: '9782368469392', title: record.title)?.id, 't1');
+    });
+
+    test('a response without records gives null', () {
+      expect(parseBnfRecord('<srw:numberOfRecords>0</srw:numberOfRecords>'), isNull);
+    });
+
+    test('decodes entities and keeps uninverted names', () {
+      final record = parseBnfRecord('<dc:title>Tintin &amp; Milou</dc:title><dc:creator>Hergé (1907-1983)</dc:creator>');
+      expect(record?.title, 'Tintin & Milou');
+      expect(record?.author, 'Hergé');
+    });
+  });
 }

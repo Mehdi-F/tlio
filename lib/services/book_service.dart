@@ -94,15 +94,21 @@ class BookService {
     return items.map((i) => BookSearchResult.fromJson(i as Map<String, dynamic>)).toList();
   }
 
-  /// Resolves a scanned ISBN to Google Books volumes, best match first.
+  /// Resolves a scanned or typed ISBN to Google Books volumes, best match
+  /// first.
   ///
   /// Google's own `isbn:` operator is the direct route, but at the time of
   /// writing it returns zero results even for famous editions (The Catcher
-  /// in the Rye, Bloomsbury's Harry Potter), with or without a key. Open
-  /// Library knows far more ISBNs — French editions and BD included — so
-  /// when the direct lookup comes back empty, its title and author drive an
-  /// ordinary Google Books search instead. Returns an empty list when
-  /// neither source knows the ISBN.
+  /// in the Rye, Bloomsbury's Harry Potter), with or without a key. So when
+  /// it comes back empty, another catalogue supplies the title and author,
+  /// which then drive an ordinary Google Books search:
+  ///  - Open Library, broad and international;
+  ///  - the BnF catalogue, which holds every book legally deposited in
+  ///    France — it found a Steinkis BD (978-2-36846-939-2) that neither
+  ///    Google nor Open Library knew.
+  /// Returns an empty list when no source knows the ISBN; throws only when
+  /// every source failed outright, so "not found" and "offline" stay
+  /// distinguishable.
   Future<List<BookSearchResult>> searchByIsbn(String isbn) async {
     try {
       final direct = await search('isbn:$isbn');
@@ -112,6 +118,30 @@ class BookService {
       // still know it.
     }
 
+    var failures = 0;
+    IsbnRecord? record;
+    for (final lookup in [_openLibraryRecord, _bnfRecord]) {
+      try {
+        record = await lookup(isbn);
+      } on Exception {
+        failures++;
+      }
+      if (record != null) break;
+    }
+    if (record == null) {
+      if (failures == 2) throw GoogleBooksException('ISBN lookup failed');
+      return const [];
+    }
+
+    final results = await search('${record.title} ${record.author}'.trim());
+    // Google's relevance order isn't the scanned book's order: put the best
+    // match first, since the caller opens results.first.
+    final best = pickIsbnMatch(results, isbn: isbn, title: record.title);
+    if (best == null) return results;
+    return [best, ...results.where((r) => !identical(r, best))];
+  }
+
+  Future<IsbnRecord?> _openLibraryRecord(String isbn) async {
     final uri = Uri.https('openlibrary.org', '/api/books', {
       'bibkeys': 'ISBN:$isbn',
       'format': 'json',
@@ -119,20 +149,32 @@ class BookService {
     });
     final response = await _client.get(uri).timeout(_requestTimeout);
     if (response.statusCode != 200) {
-      throw GoogleBooksException('ISBN lookup failed', statusCode: response.statusCode);
+      throw GoogleBooksException('Open Library lookup failed', statusCode: response.statusCode);
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final record = body['ISBN:$isbn'] as Map<String, dynamic>?;
     final title = (record?['title'] as String?)?.trim();
-    if (title == null || title.isEmpty) return const [];
+    if (title == null || title.isEmpty) return null;
     final authors = record?['authors'] as List<dynamic>? ?? const [];
     final author = authors.isEmpty ? '' : ((authors.first as Map<String, dynamic>)['name'] as String? ?? '');
-    final results = await search('$title $author'.trim());
-    // Google's relevance order isn't the scanned book's order: put the best
-    // match first, since the caller opens results.first.
-    final best = pickIsbnMatch(results, isbn: isbn, title: title);
-    if (best == null) return results;
-    return [best, ...results.where((r) => !identical(r, best))];
+    return (title: title, author: author);
+  }
+
+  /// BnF's public SRU endpoint; sends `Access-Control-Allow-Origin: *`, so
+  /// the web build can call it too.
+  Future<IsbnRecord?> _bnfRecord(String isbn) async {
+    final uri = Uri.https('catalogue.bnf.fr', '/api/SRU', {
+      'version': '1.2',
+      'operation': 'searchRetrieve',
+      'query': 'bib.isbn all "$isbn"',
+      'recordSchema': 'dublincore',
+      'maximumRecords': '1',
+    });
+    final response = await _client.get(uri).timeout(_requestTimeout);
+    if (response.statusCode != 200) {
+      throw GoogleBooksException('BnF lookup failed', statusCode: response.statusCode);
+    }
+    return parseBnfRecord(utf8.decode(response.bodyBytes));
   }
 
   Future<BookDetails> getDetails(String id) async {
