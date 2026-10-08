@@ -129,6 +129,8 @@ class AppStrings {
       'profile.titlesFinished': 'titres terminés',
 
       // Surprise me
+      'celebrate.readCompleted': 'Lecture terminée',
+      'celebrate.seriesCompleted': 'Série terminée',
       'surprise.title': 'Pioche du jour',
       'surprise.cardTitle': 'Surprends-moi',
       'surprise.cardSubtitle': 'Tire un titre au hasard dans ta bibliothèque',
@@ -256,6 +258,8 @@ class AppStrings {
       'profile.volumesRead': 'manga volumes read',
       'profile.titlesFinished': 'titles finished',
 
+      'celebrate.readCompleted': 'Finished reading',
+      'celebrate.seriesCompleted': 'Series completed',
       'surprise.title': 'Today\'s pick',
       'surprise.cardTitle': 'Surprise me',
       'surprise.cardSubtitle': 'Pick a random title from your library',

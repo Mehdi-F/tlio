@@ -9,6 +9,7 @@ import '../services/library_service.dart';
 import '../services/manga_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_bar.dart';
+import '../widgets/completion_celebration.dart';
 import '../widgets/detail_banner.dart';
 import '../widgets/expandable_text.dart';
 import '../widgets/skeletons.dart';
@@ -31,7 +32,14 @@ class MangaDetailScreen extends StatefulWidget {
   State<MangaDetailScreen> createState() => _MangaDetailScreenState();
 }
 
-class _MangaDetailScreenState extends State<MangaDetailScreen> {
+class _MangaDetailScreenState extends State<MangaDetailScreen> with SingleTickerProviderStateMixin {
+  late final CompletionCelebrator _celebrator;
+
+  @override
+  void dispose() {
+    _celebrator.dispose();
+    super.dispose();
+  }
   LibraryItem? _libraryItem;
   bool _favorite = false;
   MangaDetails? _details;
@@ -41,6 +49,9 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   @override
   void initState() {
     super.initState();
+    // Created up front rather than lazily: a lazy first touch from dispose()
+    // would build the ticker on a deactivated element and assert.
+    _celebrator = CompletionCelebrator(vsync: this);
     // Explorer's search/discover results always open via .preview (no
     // LibraryItem in hand), even for titles already in the library — without
     // this lookup the button always read "Ajouter" regardless of actual
@@ -141,7 +152,19 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     }
     final newCount = newReadAt.length;
     await library.updateVolumeProgress(uid: uid, docId: item.docId, volumesRead: newCount);
-    if (mounted) setState(() => _libraryItem = item.copyWith(volumeReadAt: newReadAt, volumesRead: newCount));
+    if (!mounted) return;
+    setState(() => _libraryItem = item.copyWith(volumeReadAt: newReadAt, volumesRead: newCount));
+    // AniList only fills in `volumes` once a series has finished publishing,
+    // so a known total read in full means the series is done for good — the
+    // same bar Showtime uses (ended *and* fully watched), not just "caught up".
+    final total = _details?.volumes;
+    if (read && total != null && item.volumeReadAt.length < total && newCount >= total) {
+      _celebrator.play(
+        context,
+        label: context.tr('celebrate.seriesCompleted'),
+        coverUrl: _details?.coverUrl,
+      );
+    }
   }
 
   AppBar _minimalAppBar() => AppBar(

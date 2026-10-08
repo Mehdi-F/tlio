@@ -9,6 +9,7 @@ import '../services/book_service.dart';
 import '../services/library_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_bar.dart';
+import '../widgets/completion_celebration.dart';
 import '../widgets/detail_banner.dart';
 import '../widgets/expandable_text.dart';
 import '../widgets/skeletons.dart';
@@ -38,7 +39,8 @@ class BookDetailScreen extends StatefulWidget {
   State<BookDetailScreen> createState() => _BookDetailScreenState();
 }
 
-class _BookDetailScreenState extends State<BookDetailScreen> {
+class _BookDetailScreenState extends State<BookDetailScreen> with SingleTickerProviderStateMixin {
+  late final CompletionCelebrator _celebrator;
   LibraryItem? _libraryItem;
   bool _favorite = false;
   BookDetails? _details;
@@ -50,6 +52,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   @override
   void initState() {
     super.initState();
+    // Created up front rather than lazily: a lazy first touch from dispose()
+    // would build the ticker on a deactivated element and assert.
+    _celebrator = CompletionCelebrator(vsync: this);
     // Explorer's search/discover results always open via .preview (no
     // LibraryItem in hand), even for titles already in the library — without
     // this lookup the button always read "Ajouter" regardless of actual
@@ -70,6 +75,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _celebrator.dispose();
     super.dispose();
   }
 
@@ -157,6 +163,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     // time _ensureAdded() resolves.
     final uid = context.read<AuthProvider>().user!.uid;
     final libraryService = context.read<LibraryService>();
+    final pagesBefore = _libraryItem?.pagesRead ?? 0;
     final item = await _ensureAdded();
     if (item == null) return;
     await libraryService.updateBookProgress(
@@ -167,6 +174,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     if (mounted) {
       setState(() => _libraryItem = item.copyWith(pagesRead: clamped));
       _pageController.text = '$clamped';
+      // Only on the step that crosses the last page — not when re-saving a
+      // book that was already finished.
+      if (pageCount != null && pagesBefore < pageCount && clamped >= pageCount) {
+        _celebrator.play(
+          context,
+          label: context.tr('celebrate.readCompleted'),
+          coverUrl: _details?.thumbnailUrl,
+        );
+      }
     }
   }
 

@@ -2,6 +2,7 @@ class AppConstants {
   AppConstants._();
 
   // Durations
+  static const celebrationDuration = Duration(milliseconds: 1600);
   static const requestTimeout = Duration(seconds: 12);
   static const cacheTtl = Duration(hours: 6);
 
