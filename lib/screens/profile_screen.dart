@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart' show User;
 import 'package:flutter/material.dart';
@@ -32,6 +34,9 @@ class _Resolved {
   _Resolved({required this.item, required this.title, required this.coverUrl, this.liveTotal});
 
   DateTime get recency => item.lastActivityAt ?? item.addedAt;
+
+  _Resolved withItem(LibraryItem next) =>
+      _Resolved(item: next, title: title, coverUrl: coverUrl, liveTotal: liveTotal);
 
   bool get isFinished {
     if (item.type == 'manga') {
@@ -92,30 +97,72 @@ class _ProfileBodyState extends State<_ProfileBody> {
     if (!identical(oldWidget.items, widget.items)) _resolveAll(widget.items);
   }
 
+  Timer? _flushTimer;
+
+  @override
+  void dispose() {
+    _flushTimer?.cancel();
+    super.dispose();
+  }
+
+  // Each resolved title used to call setState on its own, so the whole
+  // profile — every filter, sort and carousel — rebuilt once per book, and
+  // anything resolving after the skeleton lifted popped in one by one.
+  // Results now land in _resolved silently and are flushed together.
+  void _scheduleFlush() {
+    if (!mounted || _flushTimer != null) return;
+    _flushTimer = Timer(const Duration(milliseconds: 120), _flush);
+  }
+
+  void _flush() {
+    _flushTimer?.cancel();
+    _flushTimer = null;
+    if (mounted) setState(() {});
+  }
+
   Future<void> _resolveAll(List<LibraryItem> items) async {
     _lastItems = items;
     final keys = items.map((i) => i.docId).toSet();
     _resolved.removeWhere((k, _) => !keys.contains(k));
 
-    final all = forEachBounded(items, 8, (item) async {
+    // A library change is almost always progress on a title already shown
+    // (a page count, a volume ticked). Its title and cover haven't changed,
+    // so swap in the new item and only go to the network for new titles.
+    final missing = <LibraryItem>[];
+    for (final item in items) {
+      final known = _resolved[item.docId];
+      if (known != null) {
+        _resolved[item.docId] = known.withItem(item);
+      } else {
+        missing.add(item);
+      }
+    }
+    if (missing.isEmpty) {
+      if (mounted) setState(() => _showContent = true);
+      return;
+    }
+
+    final all = forEachBounded(missing, 8, (item) async {
       try {
         if (item.type == 'manga') {
           final details = await widget.manga.getDetails(int.parse(item.sourceId));
-          if (mounted) {
-            setState(() => _resolved[item.docId] = _Resolved(
-                item: item, title: details.title, coverUrl: details.coverUrl, liveTotal: details.volumes));
-          }
+          _resolved[item.docId] = _Resolved(
+              item: item, title: details.title, coverUrl: details.coverUrl, liveTotal: details.volumes);
         } else {
           final details = await widget.book.getDetails(item.sourceId);
-          if (mounted) {
-            setState(() => _resolved[item.docId] = _Resolved(
-                item: item, title: details.title, coverUrl: details.thumbnailUrl, liveTotal: details.pageCount));
-          }
+          _resolved[item.docId] = _Resolved(
+              item: item, title: details.title, coverUrl: details.thumbnailUrl, liveTotal: details.pageCount);
         }
+        // Behind the skeleton nothing is visible yet, so there's nothing to
+        // flush; once content is up, late arrivals join in batches.
+        if (_showContent) _scheduleFlush();
       } catch (_) {}
     });
     await all.timeout(AppConstants.initialLoadTimeout, onTimeout: () {});
-    if (mounted) setState(() => _showContent = true);
+    if (!mounted) return;
+    _flushTimer?.cancel();
+    _flushTimer = null;
+    setState(() => _showContent = true);
   }
 
   Future<void> _editDisplayName(BuildContext context, String currentName) async {
@@ -153,7 +200,13 @@ class _ProfileBodyState extends State<_ProfileBody> {
     bool isStarted(_Resolved r) =>
         r.item.type == 'manga' ? (r.item.volumesRead ?? 0) > 0 : (r.item.pagesRead ?? 0) > 0;
 
-    final resolved = _lastItems.map((i) => _resolved[i.docId]).whereType<_Resolved>().toList();
+    // Pair each resolved title with the *current* item: a fetch started for
+    // an older snapshot can land after a newer one and would otherwise show
+    // stale progress.
+    final resolved = [
+      for (final i in _lastItems)
+        if (_resolved[i.docId] case final r?) identical(r.item, i) ? r : r.withItem(i),
+    ];
     // Full per-type lists, for the top stat counts (total library size).
     final allBooks = resolved.where((r) => r.item.type == 'book').toList();
     final allComics = resolved.where((r) => r.item.type == 'comic').toList();
