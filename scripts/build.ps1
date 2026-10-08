@@ -34,7 +34,12 @@ param(
     [switch]$Install
 )
 
-$ErrorActionPreference = 'Stop'
+# Deliberately not 'Stop': under Windows PowerShell 5.1, a native command's
+# stderr becomes error records whenever output is redirected, and Gradle
+# routinely prints harmless notes there ("uses a deprecated API"). 'Stop'
+# turned those into a hard failure mid-build. Real failures are caught from
+# $LASTEXITCODE after each flutter/adb call instead.
+$ErrorActionPreference = 'Continue'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $defines = Join-Path $repoRoot 'dart_define.json'

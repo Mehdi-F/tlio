@@ -23,13 +23,31 @@ String? _coverUrl(Map<String, dynamic>? images, String? isbn) {
   return googleUrl;
 }
 
+List<String> _isbnsFrom(Map<String, dynamic> info) {
+  final identifiers = (info['industryIdentifiers'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+  return [
+    for (final identifier in identifiers)
+      if (identifier['type'] == 'ISBN_13' || identifier['type'] == 'ISBN_10') identifier['identifier'] as String,
+  ];
+}
+
 class BookSearchResult {
   final String id;
   final String title;
   final List<String> authors;
   final String? thumbnailUrl;
 
-  BookSearchResult({required this.id, required this.title, required this.authors, required this.thumbnailUrl});
+  /// Every ISBN-10/13 the volume lists — lets a scanned barcode be matched
+  /// to its exact edition among search results.
+  final List<String> isbns;
+
+  BookSearchResult({
+    required this.id,
+    required this.title,
+    required this.authors,
+    required this.thumbnailUrl,
+    this.isbns = const [],
+  });
 
   factory BookSearchResult.fromJson(Map<String, dynamic> json) {
     final info = json['volumeInfo'] as Map<String, dynamic>? ?? {};
@@ -39,6 +57,7 @@ class BookSearchResult {
       title: info['title'] as String? ?? 'Sans titre',
       authors: (info['authors'] as List<dynamic>? ?? []).cast<String>(),
       thumbnailUrl: _coverUrl(images, _isbnFrom(info)),
+      isbns: _isbnsFrom(info),
     );
   }
 }

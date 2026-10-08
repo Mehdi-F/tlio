@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../config/google_books_config.dart';
 import '../config/constants.dart';
 import '../exceptions/app_exception.dart';
+import '../logic/isbn_match.dart';
 import '../models/book_models.dart';
 import 'response_cache.dart';
 
@@ -126,7 +127,12 @@ class BookService {
     if (title == null || title.isEmpty) return const [];
     final authors = record?['authors'] as List<dynamic>? ?? const [];
     final author = authors.isEmpty ? '' : ((authors.first as Map<String, dynamic>)['name'] as String? ?? '');
-    return search('$title $author'.trim());
+    final results = await search('$title $author'.trim());
+    // Google's relevance order isn't the scanned book's order: put the best
+    // match first, since the caller opens results.first.
+    final best = pickIsbnMatch(results, isbn: isbn, title: title);
+    if (best == null) return results;
+    return [best, ...results.where((r) => !identical(r, best))];
   }
 
   Future<BookDetails> getDetails(String id) async {
