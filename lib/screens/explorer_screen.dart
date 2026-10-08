@@ -14,6 +14,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_page_route.dart';
 import '../widgets/media_tile.dart';
 import 'book_detail_screen.dart';
+import 'isbn_scanner_screen.dart';
 import 'manga_detail_screen.dart';
 
 enum _ExplorerMode { books, manga }
@@ -129,6 +130,32 @@ class _ExplorerScreenState extends State<ExplorerScreen>
     );
   }
 
+  /// Scan a book's barcode and jump straight to its page.
+  Future<void> _scanIsbn() async {
+    // Read everything off context before the first await — the scanner is a
+    // pushed route, and this screen can be gone by the time it pops.
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final books = context.read<BookService>();
+    final notFound = context.tr('scan.notFound');
+    final failed = context.tr('scan.lookupFailed');
+
+    final isbn = await navigator.push<String>(appRoute(builder: (_) => const IsbnScannerScreen()));
+    if (isbn == null) return;
+
+    try {
+      final results = await books.searchByIsbn(isbn);
+      if (!mounted) return;
+      if (results.isEmpty) {
+        messenger.showSnackBar(SnackBar(content: Text(notFound.replaceAll('{isbn}', isbn))));
+        return;
+      }
+      navigator.push(appRoute(builder: (_) => BookDetailScreen.preview(id: results.first.id)));
+    } catch (_) {
+      if (mounted) messenger.showSnackBar(SnackBar(content: Text(failed)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Nothing else in this screen subscribes to LibraryProvider — without
@@ -154,6 +181,17 @@ class _ExplorerScreenState extends State<ExplorerScreen>
             border: InputBorder.none,
           ),
         ),
+        // ISBNs resolve through Google Books, so scanning lives on the books
+        // tab only — a manga volume's ISBN would come back as a plain book,
+        // detached from its AniList series.
+        actions: [
+          if (_mode == _ExplorerMode.books)
+            IconButton(
+              tooltip: context.tr('scan.tooltip'),
+              icon: const Icon(Icons.qr_code_scanner),
+              onPressed: _scanIsbn,
+            ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           onTap: (i) => setState(() => _mode = _ExplorerMode.values[i]),

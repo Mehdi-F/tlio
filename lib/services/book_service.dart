@@ -93,6 +93,42 @@ class BookService {
     return items.map((i) => BookSearchResult.fromJson(i as Map<String, dynamic>)).toList();
   }
 
+  /// Resolves a scanned ISBN to Google Books volumes, best match first.
+  ///
+  /// Google's own `isbn:` operator is the direct route, but at the time of
+  /// writing it returns zero results even for famous editions (The Catcher
+  /// in the Rye, Bloomsbury's Harry Potter), with or without a key. Open
+  /// Library knows far more ISBNs — French editions and BD included — so
+  /// when the direct lookup comes back empty, its title and author drive an
+  /// ordinary Google Books search instead. Returns an empty list when
+  /// neither source knows the ISBN.
+  Future<List<BookSearchResult>> searchByIsbn(String isbn) async {
+    try {
+      final direct = await search('isbn:$isbn');
+      if (direct.isNotEmpty) return direct;
+    } on Exception {
+      // A 503 after retries or a timeout — fall through, Open Library may
+      // still know it.
+    }
+
+    final uri = Uri.https('openlibrary.org', '/api/books', {
+      'bibkeys': 'ISBN:$isbn',
+      'format': 'json',
+      'jscmd': 'data',
+    });
+    final response = await _client.get(uri).timeout(_requestTimeout);
+    if (response.statusCode != 200) {
+      throw GoogleBooksException('ISBN lookup failed', statusCode: response.statusCode);
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final record = body['ISBN:$isbn'] as Map<String, dynamic>?;
+    final title = (record?['title'] as String?)?.trim();
+    if (title == null || title.isEmpty) return const [];
+    final authors = record?['authors'] as List<dynamic>? ?? const [];
+    final author = authors.isEmpty ? '' : ((authors.first as Map<String, dynamic>)['name'] as String? ?? '');
+    return search('$title $author'.trim());
+  }
+
   Future<BookDetails> getDetails(String id) async {
     final uri = _withKey(Uri.parse('${GoogleBooksConfig.baseUrl}/volumes/$id'));
     final body = await _cachedBody('details:$id', uri, 'Get book details');
