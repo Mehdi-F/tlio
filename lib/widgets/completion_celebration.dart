@@ -16,10 +16,10 @@ import '../theme/app_theme.dart';
 /// in the page's own Stack, where an open episode sheet covered it.
 class CompletionCelebrator {
   CompletionCelebrator({required TickerProvider vsync})
-      : _controller = AnimationController(
-          vsync: vsync,
-          duration: AppConstants.celebrationDuration,
-        );
+    : _controller = AnimationController(
+        vsync: vsync,
+        duration: AppConstants.celebrationDuration,
+      );
 
   final AnimationController _controller;
   OverlayEntry? _entry;
@@ -86,126 +86,139 @@ class CompletionCelebration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Played from the root overlay, which sits above every Material — with
+    // no DefaultTextStyle there, the label fell back to Flutter's
+    // "missing Material" style: yellow double underline. A transparent
+    // Material restores the theme's text style without painting anything.
     return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) {
-          final t = controller.value;
-          if (t == 0) return const SizedBox.shrink();
+      child: Material(
+        type: MaterialType.transparency,
+        child: AnimatedBuilder(
+          animation: controller,
+          builder: (context, _) {
+            final t = controller.value;
+            if (t == 0) return const SizedBox.shrink();
 
-          final fadeOut =
-              1 - Curves.easeIn.transform(((t - 0.82) / 0.18).clamp(0.0, 1.0));
-          final badgeScale = Curves.elasticOut.transform(
-            (t / 0.55).clamp(0.0, 1.0),
-          );
-          final labelOpacity = Curves.easeOut.transform(
-            ((t - 0.22) / 0.25).clamp(0.0, 1.0),
-          );
+            final fadeOut =
+                1 -
+                Curves.easeIn.transform(((t - 0.82) / 0.18).clamp(0.0, 1.0));
+            final badgeScale = Curves.elasticOut.transform(
+              (t / 0.55).clamp(0.0, 1.0),
+            );
+            final labelOpacity = Curves.easeOut.transform(
+              ((t - 0.22) / 0.25).clamp(0.0, 1.0),
+            );
 
-          return Opacity(
-            opacity: fadeOut,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _BloomPainter(progress: t, particles: _particles),
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Transform.scale(
-                      scale: badgeScale,
-                      child: Container(
-                        width: 104,
-                        height: 104,
-                        decoration: BoxDecoration(
-                          color: AppColors.accent,
-                          shape: BoxShape.circle,
-                          // White on dark, black on light: the medallion has
-                          // to read against both the page and whatever the
-                          // poster's edges happen to be.
-                          border: Border.all(
-                            color: context.colorTextPrimary,
-                            width: 3,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.accent.withValues(alpha: 0.45),
-                              blurRadius: 28,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: coverUrl != null
-                              ? CachedNetworkImage(
-                                  imageUrl: coverUrl!,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (context, url, error) =>
-                                      const Icon(
-                                        Icons.check_rounded,
-                                        color: Colors.black,
-                                        size: 46,
-                                      ),
-                                )
-                              : const Icon(
-                                  Icons.check_rounded,
-                                  color: Colors.black,
-                                  size: 46,
-                                ),
-                        ),
+            return Opacity(
+              opacity: fadeOut,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _BloomPainter(
+                        progress: t,
+                        particles: _particles,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Opacity(
-                      opacity: labelOpacity,
-                      // Rises as it fades in, so it lands under the medallion
-                      // instead of just appearing there.
-                      child: Transform.translate(
-                        offset: Offset(0, 10 * (1 - labelOpacity)),
-                        child: DecoratedBox(
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Transform.scale(
+                        scale: badgeScale,
+                        child: Container(
+                          width: 104,
+                          height: 104,
                           decoration: BoxDecoration(
                             color: AppColors.accent,
-                            borderRadius: BorderRadius.circular(22),
+                            shape: BoxShape.circle,
+                            // White on dark, black on light: the medallion has
+                            // to read against both the page and whatever the
+                            // poster's edges happen to be.
+                            border: Border.all(
+                              color: context.colorTextPrimary,
+                              width: 3,
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.accent.withValues(alpha: 0.35),
-                                blurRadius: 18,
-                                spreadRadius: 1,
-                              ),
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.3),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                                color: AppColors.accent.withValues(alpha: 0.45),
+                                blurRadius: 28,
+                                spreadRadius: 2,
                               ),
                             ],
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 9,
+                          child: ClipOval(
+                            child: coverUrl != null
+                                ? CachedNetworkImage(
+                                    imageUrl: coverUrl!,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (context, url, error) =>
+                                        const Icon(
+                                          Icons.check_rounded,
+                                          color: Colors.black,
+                                          size: 46,
+                                        ),
+                                  )
+                                : const Icon(
+                                    Icons.check_rounded,
+                                    color: Colors.black,
+                                    size: 46,
+                                  ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Opacity(
+                        opacity: labelOpacity,
+                        // Rises as it fades in, so it lands under the medallion
+                        // instead of just appearing there.
+                        child: Transform.translate(
+                          offset: Offset(0, 10 * (1 - labelOpacity)),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: AppColors.accent,
+                              borderRadius: BorderRadius.circular(22),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.accent.withValues(
+                                    alpha: 0.35,
+                                  ),
+                                  blurRadius: 18,
+                                  spreadRadius: 1,
+                                ),
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.3),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            child: Text(
-                              label,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 16,
-                                letterSpacing: 0.4,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 9,
+                              ),
+                              child: Text(
+                                label,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 16,
+                                  letterSpacing: 0.4,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
