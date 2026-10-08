@@ -59,3 +59,29 @@ String normalizeTitle(String s) {
   }
   return buffer.toString().replaceAll(RegExp(r'[^a-z0-9]'), '');
 }
+
+/// Returns [input] as a bare ISBN (digits, plus a trailing X for ISBN-10)
+/// when it is one, else null — so a search box can tell "9781804994252" or
+/// "978-1-8049-9425-2" from a title.
+///
+/// The check digit is verified: an arbitrary 10- or 13-digit number typed
+/// as a search term stays an ordinary search instead of being misread as
+/// an ISBN.
+String? parseIsbn(String input) {
+  final s = input.replaceAll(RegExp(r'[\s-]'), '').toUpperCase();
+  if (RegExp(r'^97[89]\d{10}$').hasMatch(s)) {
+    var sum = 0;
+    for (var i = 0; i < 13; i++) {
+      sum += int.parse(s[i]) * (i.isEven ? 1 : 3);
+    }
+    return sum % 10 == 0 ? s : null;
+  }
+  if (RegExp(r'^\d{9}[\dX]$').hasMatch(s)) {
+    var sum = 0;
+    for (var i = 0; i < 10; i++) {
+      sum += (s[i] == 'X' ? 10 : int.parse(s[i])) * (10 - i);
+    }
+    return sum % 11 == 0 ? s : null;
+  }
+  return null;
+}

@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/localization_context.dart';
+import '../logic/isbn_match.dart';
 import '../models/book_models.dart';
 import '../models/manga_models.dart';
 import '../providers/auth_provider.dart';
@@ -87,7 +88,12 @@ class _ExplorerScreenState extends State<ExplorerScreen>
     });
     try {
       if (_mode == _ExplorerMode.books) {
-        final results = await context.read<BookService>().search(q);
+        // A typed ISBN goes through the same resolution as a scanned one —
+        // a plain Google query for the digits mostly returns unrelated
+        // catalogue listings.
+        final books = context.read<BookService>();
+        final isbn = parseIsbn(q);
+        final results = isbn != null ? await books.searchByIsbn(isbn) : await books.search(q);
         if (!mounted || token != _searchToken) return;
         setState(() => _bookResults = results);
       } else {

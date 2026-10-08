@@ -52,4 +52,28 @@ void main() {
   test('empty results give null', () {
     expect(pickIsbnMatch(const [], isbn: '0', title: 'x'), isNull);
   });
+
+  group('parseIsbn', () {
+    test('accepts ISBN-13 with or without hyphens and spaces', () {
+      expect(parseIsbn('9781804994252'), '9781804994252');
+      expect(parseIsbn('978-1-8049-9425-2'), '9781804994252');
+      expect(parseIsbn(' 978 1 8049 9425 2 '), '9781804994252');
+    });
+
+    test('accepts ISBN-10, including an X check digit', () {
+      expect(parseIsbn('0-316-76948-7'), '0316769487');
+      expect(parseIsbn('080442957x'), '080442957X');
+    });
+
+    test('rejects a wrong check digit', () {
+      expect(parseIsbn('9781804994253'), isNull);
+      expect(parseIsbn('0316769488'), isNull);
+    });
+
+    test('leaves titles and other numbers alone', () {
+      expect(parseIsbn('Tales of the City'), isNull);
+      expect(parseIsbn('1984'), isNull);
+      expect(parseIsbn('1234567890123'), isNull);
+    });
+  });
 }
